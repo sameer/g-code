@@ -1,0 +1,86 @@
+use crate::ast;
+use crate::lexer;
+use lexer::LexicalError;
+
+grammar<'input>(input: &'input str);
+
+extern {
+    type Location = usize;
+    type Error = LexicalError;
+
+    enum lexer::LexTok<'input> {
+        TokNewline => lexer::LexTok::Newline,
+        TokDot => lexer::LexTok::Dot,
+        TokStar => lexer::LexTok::Star,
+        TokString => lexer::LexTok::String(<&'input str>),
+        TokInlineComment => lexer::LexTok::InlineComment(<&'input str>),
+        TokComment => lexer::LexTok::Comment(<&'input str>),
+        TokInteger => lexer::LexTok::Integer(<&'input str>),
+        TokLetters => lexer::LexTok::Letters(<&'input str>),
+        TokWhitespace => lexer::LexTok::Whitespace(<&'input str>)
+    }
+}
+
+Checksum: ast::token::Checksum = <left:@L> <star:TokStar> <checksum:TokInteger> <right:@R> =>? Ok(ast::token::Checksum {
+    inner: checksum.parse::<u8>().map_err(|e| LexicalError::ParseIntError(e))?,
+    span: ast::token::Span(left, right)
+});
+
+Field: ast::token::Field<'input> = {
+    <left:@L> <letters:TokLetters> <value:TokInteger> <right:@R> =>? {
+        Ok(ast::token::Field {
+            letters,
+            value: ast::token::Value::Integer(value.parse::<usize>().map_err(|e| LexicalError::ParseIntError(e))?),
+            span: ast::token::Span(left, right)
+        })
+    },
+
+    <left:@L> <letters:TokLetters> <numerator:TokInteger> <dot:TokDot> <denominator:TokInteger> <right:@R> =>? {
+        Ok(ast::token::Field {
+            letters,
+            value: ast::token::Value::Rational(numerator.parse::<usize>().map_err(|e| LexicalError::ParseIntError(e))?, denominator.parse::<usize>().map_err(|e| LexicalError::ParseIntError(e))?),
+            span: ast::token::Span(left, right)
+        })
+    },
+
+    <left:@L> <letters:TokLetters> <string:TokString> <right:@R> => ast::token::Field {
+        letters,
+        value: ast::token::Value::String(string),
+        span: ast::token::Span(left, right)
+    }
+};
+
+Comment: ast::token::Comment<'input> = <left:@L> <comment:TokComment> => ast::token::Comment {
+    inner: comment,
+    pos: left,
+};
+
+InlineComment: ast::token::InlineComment<'input> = <left:@L> <comment:TokInlineComment> => ast::token::InlineComment {
+    inner: comment,
+    pos: left,
+};
+
+Whitespace: ast::token::Whitespace<'input> = <left:@L> <whitespace:TokWhitespace> => ast::token::Whitespace {
+    inner: whitespace,
+    pos: left,
+};
+
+Line: ast::Line<'input> = <fields:(Whitespace? Field)*> <checksum:(Whitespace? Checksum)?> <comment:(Whitespace? Comment)?> <whitespace:Whitespace?> => ast::Line {
+    fields,
+    checksum,
+    comment,
+    whitespace,
+};
+
+Newline: ast::token::Newline = <left:@L> TokNewline => ast::token::Newline { pos: left };
+
+pub File: ast::File<'input> = {
+    <lines:(Line Newline)*> <last_line:Line> => ast::File {
+        lines,
+        last_line: if last_line.fields.is_empty() && last_line.checksum.is_none() && last_line.comment.is_none() {
+            None
+        } else {
+            Some(last_line)
+        }
+    },
+};

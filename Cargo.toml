@@ -1,0 +1,14 @@
+[package]
+name = "gcode-lalrpop"
+version = "0.1.0"
+authors = ["Sameer Puri <sameer@users.noreply.github.com>"]
+edition = "2018"
+
+[build-dependencies]
+lalrpop = { version = "0.19", features = [ ], default-features = false }
+
+[dependencies]
+lalrpop-util = { version = "0.19", features =  [ ], default-features = false }
+
+[dev-dependencies]
+pretty_assertions = "0.6.1"
