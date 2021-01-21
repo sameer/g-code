@@ -12,3 +12,8 @@ cargo run ./tests/vandy_commodores_logo.gcode
 
 Output: https://gist.github.com/sameer/5fe20dad6faa6329926df48b82e68581
 
+## TODOs
+
+* Inline comments
+* Higher level AST
+* GCode string fields
