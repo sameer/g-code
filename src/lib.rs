@@ -6,6 +6,7 @@ pub mod ast {
     use std::fmt::Debug;
     use token::*;
 
+    #[derive(Debug, Clone, PartialEq)]
     pub struct File<'input> {
         pub lines: Vec<(Line<'input>, Newline)>,
         pub last_line: Option<Line<'input>>,
@@ -133,7 +134,7 @@ pub mod ast {
     }
 }
 
-mod lexer {
+pub mod lexer {
     use crate::ast::token::*;
     use std::num::ParseIntError;
     use std::str::CharIndices;
@@ -450,7 +451,7 @@ mod tests {
     fn parses_svg2gcode_output_correctly() {
         use super::lexer;
         use super::parser::FileParser;
-        let gcode = include_str!("../tests/square_transformed.gcode");
+        let gcode = include_str!("../tests/vandy_commmodores_logo.gcode");
         FileParser::new()
             .parse(gcode, lexer::Lexer::new(gcode))
             .unwrap();
