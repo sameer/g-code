@@ -35,10 +35,10 @@ Field: ast::token::Field<'input> = {
         })
     },
 
-    <left:@L> <letters:TokLetters> <numerator:TokInteger> <dot:TokDot> <denominator:TokInteger> <right:@R> =>? {
+    <left:@L> <letters:TokLetters> <lhs:TokInteger> <dot:TokDot> <rhs:TokInteger> <right:@R> =>? {
         Ok(ast::token::Field {
             letters,
-            value: ast::token::Value::Rational(numerator.parse::<usize>().map_err(|e| LexicalError::ParseIntError(e))?, denominator.parse::<usize>().map_err(|e| LexicalError::ParseIntError(e))?),
+            value: ast::token::Value::Rational(lhs.parse::<usize>().map_err(|e| LexicalError::ParseIntError(e))?, rhs.parse::<usize>().map_err(|e| LexicalError::ParseIntError(e))?),
             span: ast::token::Span(left, right)
         })
     },

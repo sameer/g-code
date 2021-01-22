@@ -7,8 +7,6 @@ fn main() {
     let gcode: String = std::fs::read_to_string(filename).expect("file isn't readable");
     eprintln!(
         "{:#?}",
-        FileParser::new()
-            .parse(&gcode, lexer::Lexer::new(&gcode))
-            .expect("gcode could not be parsed")
+        FileParser::new().parse(&gcode, lexer::Lexer::new(&gcode))
     );
 }
