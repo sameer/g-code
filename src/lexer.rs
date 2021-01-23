@@ -15,7 +15,7 @@ pub struct Lexer<'input> {
 pub enum LexicalError {
     /// This character is not part of the [ASCII character set](https://en.wikipedia.org/wiki/ASCII),
     /// or its presence does not make sense in the context of GCode (i.e. a stray dollar sign)
-    UnexpectedCharacter((usize, char)),
+    UnexpectedCharacter(usize, char),
     /// A [`LexTok::InlineComment`] started but a [`LexTok::Newline`] was encountered before it was finished.
     UnexpectedNewline,
     /// Input ended prematurely while building a [`LexTok::String`] or [`LexTok::InlineComment`]
@@ -100,7 +100,7 @@ impl<'input> Iterator for Lexer<'input> {
                         {
                             self.state = Whitespace(pos)
                         }
-                        Some((pos, c)) => return Some(Err(UnexpectedCharacter((pos, c)))),
+                        Some((pos, c)) => return Some(Err(UnexpectedCharacter(pos, c))),
                         None => return None,
                     };
                 }
@@ -148,7 +148,7 @@ impl<'input> Iterator for Lexer<'input> {
                             )));
                         }
                     }
-                    Some((pos, other)) => return Some(Err(UnexpectedCharacter((pos, other)))),
+                    Some((pos, other)) => return Some(Err(UnexpectedCharacter(pos, other))),
                     None => {
                         if prev_could_be_escaped_quote {
                             self.state = Init;
@@ -174,7 +174,7 @@ impl<'input> Iterator for Lexer<'input> {
                         )));
                     }
                     Some((_, c)) if c.is_ascii() => {}
-                    Some((pos, other)) => return Some(Err(UnexpectedCharacter((pos, other)))),
+                    Some((pos, other)) => return Some(Err(UnexpectedCharacter(pos, other))),
                     None => return Some(Err(UnexpectedEOF)),
                 },
                 Comment(start) => match self.chars.next() {
@@ -195,7 +195,7 @@ impl<'input> Iterator for Lexer<'input> {
                         )));
                     }
                     Some((_, c)) if c.is_ascii() => {}
-                    Some((pos, other)) => return Some(Err(UnexpectedCharacter((pos, other)))),
+                    Some((pos, other)) => return Some(Err(UnexpectedCharacter(pos, other))),
                 },
                 Integer(start) => match self.chars.next() {
                     None => {
@@ -260,7 +260,7 @@ impl<'input> Iterator for Lexer<'input> {
                         )));
                     }
                     Some((_, digit)) if digit.is_ascii_digit() => {}
-                    Some((pos, other)) => return Some(Err(UnexpectedCharacter((pos, other)))),
+                    Some((pos, other)) => return Some(Err(UnexpectedCharacter(pos, other))),
                 },
                 Letters(start) => match self.chars.next() {
                     None => {
@@ -325,7 +325,7 @@ impl<'input> Iterator for Lexer<'input> {
                         )));
                     }
                     Some((_, letter)) if letter.is_ascii_alphabetic() => {}
-                    Some((pos, other)) => return Some(Err(UnexpectedCharacter((pos, other)))),
+                    Some((pos, other)) => return Some(Err(UnexpectedCharacter(pos, other))),
                 },
                 Whitespace(start) => match self.chars.next() {
                     None => {
@@ -389,7 +389,7 @@ impl<'input> Iterator for Lexer<'input> {
                     }
                     Some((_, whitespace))
                         if whitespace.is_ascii_whitespace() && whitespace != '\n' => {}
-                    Some((pos, other)) => return Some(Err(UnexpectedCharacter((pos, other)))),
+                    Some((pos, other)) => return Some(Err(UnexpectedCharacter(pos, other))),
                 },
             }
         }
