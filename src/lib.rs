@@ -28,6 +28,22 @@ mod tests {
     }
 
     #[test]
+    fn parses_fields_without_whitespace() {
+        let gcode = "G0X1Y0";
+        FileParser::new()
+            .parse(gcode, lexer::Lexer::new(gcode))
+            .unwrap();
+    }
+
+    #[test]
+    fn parses_fields_with_trailing_whitespace() {
+        let gcode = "G0 X1 ";
+        FileParser::new()
+            .parse(gcode, lexer::Lexer::new(gcode))
+            .unwrap();
+    }
+
+    #[test]
     fn validates_checksums() {
         let gcode = r#"N0 M106*36 
         N1 G28*18 
@@ -39,5 +55,14 @@ mod tests {
             assert_eq!(line.compute_checksum(), *checksum);
             assert_eq!(line.validate_checksum(), Some(Ok(())));
         }
+    }
+
+    #[test]
+    fn checksum_of_empty_line_is_zero() {
+        let gcode = "*0";
+        let parsed = FileParser::new()
+            .parse(gcode, lexer::Lexer::new(gcode))
+            .unwrap();
+        assert_eq!(parsed.iter().next().unwrap().compute_checksum(), 0u8);
     }
 }
