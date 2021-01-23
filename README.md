@@ -9,7 +9,7 @@ A handwritten lexer is used as LALRPOP currently does not handle whitespace well
 Demo:
 
 ```
-cargo run ./tests/vandy_commodores_logo.gcode
+cargo run --example parse ./tests/vandy_commodores_logo.gcode
 ```
 
 Output: https://gist.github.com/sameer/5fe20dad6faa6329926df48b82e68581
