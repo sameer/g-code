@@ -20,9 +20,24 @@ mod tests {
 
     #[test]
     fn parses_field_with_string_value() {
-        let gcode = include_str!("../tests/string.gcode");
+        let gcode = r#"M587 S"MYROUTER" P"ABCxyz;"" 123" 
+        M587 S"MYROUTER" P"ABC'X'Y'Z;"" 123""#;
         FileParser::new()
             .parse(gcode, lexer::Lexer::new(gcode))
             .unwrap();
+    }
+
+    #[test]
+    fn validates_checksums() {
+        let gcode = r#"N0 M106*36 
+        N1 G28*18 
+        N2 M107*39"#;
+        let parsed = FileParser::new()
+            .parse(gcode, lexer::Lexer::new(gcode))
+            .unwrap();
+        for (line, checksum) in parsed.iter().zip(&[36u8, 18u8, 39u8]) {
+            assert_eq!(line.compute_checksum(), *checksum);
+            assert_eq!(line.validate_checksum(), Some(Ok(())));
+        }
     }
 }

@@ -2,6 +2,9 @@ use std::num::ParseIntError;
 use std::str::CharIndices;
 
 pub type Spanned<Tok, Pos, Error> = Result<(Pos, Tok, Pos), Error>;
+
+/// A lexer for producing the primitive GCode tokens in [`LexTok`].
+/// Operates as a [Mealy Machine](https://en.wikipedia.org/wiki/Mealy_machine).
 pub struct Lexer<'input> {
     input: &'input str,
     chars: CharIndices<'input>,
@@ -10,10 +13,15 @@ pub struct Lexer<'input> {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum LexicalError {
-    /// This character is not ascii or does not make sense in the context of GCode
+    /// This character is not part of the [ASCII character set](https://en.wikipedia.org/wiki/ASCII),
+    /// or its presence does not make sense in the context of GCode (i.e. a stray dollar sign)
     UnexpectedCharacter((usize, char)),
+    /// A [`LexTok::InlineComment`] started but a [`LexTok::Newline`] was encountered before it was finished.
     UnexpectedNewline,
+    /// Input ended prematurely while building a [`LexTok::String`] or [`LexTok::InlineComment`]
+    /// both of which require a closing delimiter
     UnexpectedEOF,
+    /// A [`LexTok::Integer`] was out of the bounds of a `usize`.
     ParseIntError(ParseIntError),
 }
 

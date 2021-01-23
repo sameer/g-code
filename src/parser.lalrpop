@@ -31,6 +31,7 @@ Field: ast::token::Field<'input> = {
         Ok(ast::token::Field {
             letters,
             value: ast::token::Value::Integer(value.parse::<usize>().map_err(|e| LexicalError::ParseIntError(e))?),
+            raw_value: vec![value],
             span: ast::token::Span(left, right)
         })
     },
@@ -39,24 +40,26 @@ Field: ast::token::Field<'input> = {
         Ok(ast::token::Field {
             letters,
             value: ast::token::Value::Rational(lhs.parse::<usize>().map_err(|e| LexicalError::ParseIntError(e))?, rhs.parse::<usize>().map_err(|e| LexicalError::ParseIntError(e))?),
+            raw_value: vec![lhs, ".", rhs],
             span: ast::token::Span(left, right)
         })
     },
 
     <left:@L> <letters:TokLetters> <string:TokString> <right:@R> => ast::token::Field {
         letters,
-        value: ast::token::Value::String(string),
+        value: ast::token::Value::String(string.strip_prefix('"').unwrap().strip_suffix('"').unwrap()),
+        raw_value: vec![string],
         span: ast::token::Span(left, right)
     }
 };
 
 Comment: ast::token::Comment<'input> = <left:@L> <comment:TokComment> => ast::token::Comment {
-    inner: comment,
+    inner: comment.strip_prefix(';').unwrap(),
     pos: left,
 };
 
 InlineComment: ast::token::InlineComment<'input> = <left:@L> <comment:TokInlineComment> => ast::token::InlineComment {
-    inner: comment,
+    inner: comment.strip_prefix('(').unwrap().strip_suffix(')').unwrap(),
     pos: left,
 };
 
