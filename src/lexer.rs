@@ -197,200 +197,103 @@ impl<'input> Iterator for Lexer<'input> {
                     Some((_, c)) if c.is_ascii() => {}
                     Some((pos, other)) => return Some(Err(UnexpectedCharacter(pos, other))),
                 },
-                Integer(start) => match self.chars.next() {
-                    None => {
-                        self.state = Init;
-                        return Some(Ok((
-                            start,
-                            LexTok::Integer(self.input.get(start..).unwrap()),
-                            self.input.len(),
-                        )));
+                Integer(start) | Letters(start) | Whitespace(start) => {
+                    let original_state = self.state.clone();
+                    let output = match self.chars.next() {
+                        None => {
+                            self.state = Init;
+                            Some((start, self.input.len()))
+                        }
+                        Some((end, '\n')) => {
+                            self.state = Newline(end);
+                            Some((start, end))
+                        }
+                        Some((end, '.')) => {
+                            self.state = Dot(end);
+                            Some((start, end))
+                        }
+                        Some((end, '*')) => {
+                            self.state = Star(end);
+                            Some((start, end))
+                        }
+                        Some((end, '"')) => {
+                            self.state = String {
+                                start: end,
+                                prev_could_be_escaped_quote: false,
+                            };
+                            Some((start, end))
+                        }
+                        Some((pos, non_ascii)) if !non_ascii.is_ascii() => {
+                            return Some(Err(UnexpectedCharacter(pos, non_ascii)));
+                        }
+                        Some((end, other)) => {
+                            if !other.is_ascii_digit() && !other.is_ascii_alphabetic() && !other.is_ascii_whitespace() {
+                                return Some(Err(UnexpectedCharacter(end, other)));
+                            }
+                            let output = if let Letters(_) | Integer(_) = &original_state {
+                                if other.is_ascii_whitespace() && other != '\n' {
+                                    self.state = Whitespace(end);
+                                    Some((start, end))
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            }
+                            .or(if let Whitespace(_) | Integer(_) = &original_state {
+                                if other.is_ascii_alphabetic() {
+                                    self.state = Letters(end);
+                                    Some((start, end))
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            })
+                            .or(
+                                if let Whitespace(_) | Letters(_) = &original_state {
+                                    if other.is_ascii_digit() {
+                                        self.state = Integer(end);
+                                        Some((start, end))
+                                    } else {
+                                        None
+                                    }
+                                } else {
+                                    None
+                                },
+                            );
+                            output
+                        }
+                    };
+
+                    match output {
+                        Some((start, end)) => match original_state {
+                            Whitespace(_) => {
+                                return Some(Ok((
+                                    start,
+                                    LexTok::Whitespace(self.input.get(start..end).unwrap()),
+                                    end,
+                                )))
+                            }
+                            Letters(_) => {
+                                return Some(Ok((
+                                    start,
+                                    LexTok::Letters(self.input.get(start..end).unwrap()),
+                                    end,
+                                )))
+                            }
+                            Integer(_) => {
+                                return Some(Ok((
+                                    start,
+                                    LexTok::Integer(self.input.get(start..end).unwrap()),
+                                    end,
+                                )))
+                            }
+                            _ => unreachable!(),
+                        },
+                        None => {}
                     }
-                    Some((end, whitespace))
-                        if whitespace.is_ascii_whitespace() && whitespace != '\n' =>
-                    {
-                        self.state = Whitespace(end);
-                        return Some(Ok((
-                            start,
-                            LexTok::Integer(self.input.get(start..end).unwrap()),
-                            end,
-                        )));
-                    }
-                    Some((end, letter)) if letter.is_ascii_alphabetic() => {
-                        self.state = Letters(end);
-                        return Some(Ok((
-                            start,
-                            LexTok::Integer(self.input.get(start..end).unwrap()),
-                            end,
-                        )));
-                    }
-                    Some((end, '\n')) => {
-                        self.state = Newline(end);
-                        return Some(Ok((
-                            start,
-                            LexTok::Integer(self.input.get(start..end).unwrap()),
-                            end,
-                        )));
-                    }
-                    Some((end, '.')) => {
-                        self.state = Dot(end);
-                        return Some(Ok((
-                            start,
-                            LexTok::Integer(self.input.get(start..end).unwrap()),
-                            end,
-                        )));
-                    }
-                    Some((end, '*')) => {
-                        self.state = Star(end);
-                        return Some(Ok((
-                            start,
-                            LexTok::Integer(self.input.get(start..end).unwrap()),
-                            end,
-                        )));
-                    }
-                    Some((end, '"')) => {
-                        self.state = String {
-                            start: end,
-                            prev_could_be_escaped_quote: false,
-                        };
-                        return Some(Ok((
-                            start,
-                            LexTok::Integer(self.input.get(start..end).unwrap()),
-                            end,
-                        )));
-                    }
-                    Some((_, digit)) if digit.is_ascii_digit() => {}
-                    Some((pos, other)) => return Some(Err(UnexpectedCharacter(pos, other))),
-                },
-                Letters(start) => match self.chars.next() {
-                    None => {
-                        self.state = Init;
-                        return Some(Ok((
-                            start,
-                            LexTok::Letters(self.input.get(start..).unwrap()),
-                            self.input.len(),
-                        )));
-                    }
-                    Some((end, whitespace))
-                        if whitespace.is_ascii_whitespace() && whitespace != '\n' =>
-                    {
-                        self.state = Whitespace(end);
-                        return Some(Ok((
-                            start,
-                            LexTok::Letters(self.input.get(start..end).unwrap()),
-                            end,
-                        )));
-                    }
-                    Some((end, digit)) if digit.is_ascii_digit() => {
-                        self.state = Integer(end);
-                        return Some(Ok((
-                            start,
-                            LexTok::Letters(self.input.get(start..end).unwrap()),
-                            end,
-                        )));
-                    }
-                    Some((end, '\n')) => {
-                        self.state = Newline(end);
-                        return Some(Ok((
-                            start,
-                            LexTok::Letters(self.input.get(start..end).unwrap()),
-                            end,
-                        )));
-                    }
-                    Some((end, '.')) => {
-                        self.state = Dot(end);
-                        return Some(Ok((
-                            start,
-                            LexTok::Letters(self.input.get(start..end).unwrap()),
-                            end,
-                        )));
-                    }
-                    Some((end, '*')) => {
-                        self.state = Star(end);
-                        return Some(Ok((
-                            start,
-                            LexTok::Letters(self.input.get(start..end).unwrap()),
-                            end,
-                        )));
-                    }
-                    Some((end, '"')) => {
-                        self.state = String {
-                            start: end,
-                            prev_could_be_escaped_quote: false,
-                        };
-                        return Some(Ok((
-                            start,
-                            LexTok::Letters(self.input.get(start..end).unwrap()),
-                            end,
-                        )));
-                    }
-                    Some((_, letter)) if letter.is_ascii_alphabetic() => {}
-                    Some((pos, other)) => return Some(Err(UnexpectedCharacter(pos, other))),
-                },
-                Whitespace(start) => match self.chars.next() {
-                    None => {
-                        self.state = Init;
-                        return Some(Ok((
-                            start,
-                            LexTok::Whitespace(self.input.get(start..).unwrap()),
-                            self.input.len(),
-                        )));
-                    }
-                    Some((end, letter)) if letter.is_ascii_alphabetic() => {
-                        self.state = Letters(end);
-                        return Some(Ok((
-                            start,
-                            LexTok::Whitespace(self.input.get(start..end).unwrap()),
-                            end,
-                        )));
-                    }
-                    Some((end, digit)) if digit.is_ascii_digit() => {
-                        self.state = Integer(end);
-                        return Some(Ok((
-                            start,
-                            LexTok::Whitespace(self.input.get(start..end).unwrap()),
-                            end,
-                        )));
-                    }
-                    Some((end, '\n')) => {
-                        self.state = Newline(end);
-                        return Some(Ok((
-                            start,
-                            LexTok::Whitespace(self.input.get(start..end).unwrap()),
-                            end,
-                        )));
-                    }
-                    Some((end, '.')) => {
-                        self.state = Dot(end);
-                        return Some(Ok((
-                            start,
-                            LexTok::Whitespace(self.input.get(start..end).unwrap()),
-                            end,
-                        )));
-                    }
-                    Some((end, '*')) => {
-                        self.state = Star(end);
-                        return Some(Ok((
-                            start,
-                            LexTok::Whitespace(self.input.get(start..end).unwrap()),
-                            end,
-                        )));
-                    }
-                    Some((end, '"')) => {
-                        self.state = String {
-                            start: end,
-                            prev_could_be_escaped_quote: false,
-                        };
-                        return Some(Ok((
-                            start,
-                            LexTok::Whitespace(self.input.get(start..end).unwrap()),
-                            end,
-                        )));
-                    }
-                    Some((_, whitespace))
-                        if whitespace.is_ascii_whitespace() && whitespace != '\n' => {}
-                    Some((pos, other)) => return Some(Err(UnexpectedCharacter(pos, other))),
-                },
+                }
             }
         }
     }
