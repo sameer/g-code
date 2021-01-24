@@ -115,7 +115,7 @@ impl<'input> Iterator for Lexer<'input> {
                             Star(_) => LexTok::Star,
                             _ => unreachable!(),
                         },
-                        pos,
+                        pos + 1,
                     )));
                 }
                 String {
