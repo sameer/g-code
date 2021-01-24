@@ -8,7 +8,7 @@ pub mod lexer;
 #[cfg(test)]
 mod tests {
     use super::parser::FileParser;
-    use crate::lexer::{Lexer, LexicalError};
+    use crate::lexer::{LexTok, Lexer, LexicalError};
 
     mod parser {
         use super::*;
@@ -60,11 +60,108 @@ mod tests {
 
     mod lexer {
         use super::*;
+
+        #[test]
+        fn escaped_quotes_are_lexed() {
+            let gcode = r#""""Testing""""#;
+            assert_eq!(
+                Lexer::new(gcode).next(),
+                Some(Ok((0, LexTok::String(gcode), gcode.len())))
+            )
+        }
+
+        #[test]
+        fn comment_is_lexed() {
+            let gcode = ";Comment";
+            assert_eq!(
+                Lexer::new(gcode).next(),
+                Some(Ok((0, LexTok::Comment(gcode), gcode.len())))
+            )
+        }
+
+        #[test]
+        fn letters_are_lexed() {
+            let gcode = "ABCD";
+            assert_eq!(
+                Lexer::new(gcode).next(),
+                Some(Ok((0, LexTok::Letters(gcode), gcode.len())))
+            )
+        }
+
+        #[test]
+        fn integer_is_lexed() {
+            let gcode = "1234567890";
+            assert_eq!(
+                Lexer::new(gcode).next(),
+                Some(Ok((0, LexTok::Integer(gcode), gcode.len())))
+            )
+        }
+
+        #[test]
+        fn dot_is_lexed() {
+            let gcode = ".";
+            assert_eq!(
+                Lexer::new(gcode).next(),
+                Some(Ok((0, LexTok::Dot, gcode.len())))
+            )
+        }
+
+        #[test]
+        fn star_is_lexed() {
+            let gcode = "*";
+            assert_eq!(
+                Lexer::new(gcode).next(),
+                Some(Ok((0, LexTok::Star, gcode.len())))
+            )
+        }
+
+        #[test]
+        fn newline_is_lexed() {
+            let gcode = "\n";
+            assert_eq!(
+                Lexer::new(gcode).next(),
+                Some(Ok((0, LexTok::Newline, gcode.len())))
+            )
+        }
+    
+        #[test]
+        fn inline_comment_is_lexed() {
+            let gcode = "(Comment)";
+            assert_eq!(
+                Lexer::new(gcode).next(),
+                Some(Ok((0, LexTok::InlineComment(gcode), gcode.len())))
+            )
+        }
+
         #[test]
         fn non_ascii_returns_unexpected_character_error() {
             assert_eq!(
                 Lexer::new("§").next(),
                 Some(Err(LexicalError::UnexpectedCharacter(0, '§')))
+            )
+        }
+
+        #[test]
+        fn non_ascii_in_string_returns_unexpected_character_error() {
+            assert_eq!(
+                Lexer::new(r#""§""#).next(),
+                Some(Err(LexicalError::UnexpectedCharacter(1, '§')))
+            )
+        }
+
+        #[test]
+        fn non_ascii_in_comment_returns_unexpected_character_error() {
+            assert_eq!(
+                Lexer::new(";§").next(),
+                Some(Err(LexicalError::UnexpectedCharacter(1, '§')))
+            )
+        }
+
+        #[test]
+        fn non_ascii_in_inline_comment_returns_unexpected_character_error() {
+            assert_eq!(
+                Lexer::new("(§)").next(),
+                Some(Err(LexicalError::UnexpectedCharacter(1, '§')))
             )
         }
 
