@@ -8,6 +8,7 @@ pub mod lexer;
 #[cfg(test)]
 mod tests {
     use super::parser::FileParser;
+    use crate::ast::{token::*, Line};
     use crate::lexer::{LexTok, Lexer, LexicalError};
 
     mod parser {
@@ -55,6 +56,23 @@ mod tests {
             let gcode = "*0";
             let parsed = FileParser::new().parse(gcode, Lexer::new(gcode)).unwrap();
             assert_eq!(parsed.iter().next().unwrap().compute_checksum(), 0u8);
+        }
+
+        #[test]
+        fn inline_comment_is_parsed() {
+            let gcode = "(comment)";
+            let parsed = FileParser::new().parse(gcode, Lexer::new(gcode)).unwrap();
+            assert_eq!(
+                *parsed.iter().next().unwrap(),
+                Line {
+                    inline_comment: InlineComment {
+                        inner: "(comment)",
+                        pos: 0
+                    }
+                    .into(),
+                    ..Default::default()
+                }
+            );
         }
     }
 
@@ -123,7 +141,7 @@ mod tests {
                 Some(Ok((0, LexTok::Newline, gcode.len())))
             )
         }
-    
+
         #[test]
         fn inline_comment_is_lexed() {
             let gcode = "(Comment)";

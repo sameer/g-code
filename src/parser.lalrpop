@@ -47,19 +47,19 @@ Field: ast::token::Field<'input> = {
 
     <left:@L> <letters:TokLetters> <string:TokString> <right:@R> => ast::token::Field {
         letters,
-        value: ast::token::Value::String(string.strip_prefix('"').unwrap().strip_suffix('"').unwrap()),
+        value: ast::token::Value::String(string),
         raw_value: vec![string],
         span: ast::token::Span(left, right)
     }
 };
 
 Comment: ast::token::Comment<'input> = <left:@L> <comment:TokComment> => ast::token::Comment {
-    inner: comment.strip_prefix(';').unwrap(),
+    inner: comment,
     pos: left,
 };
 
 InlineComment: ast::token::InlineComment<'input> = <left:@L> <comment:TokInlineComment> => ast::token::InlineComment {
-    inner: comment.strip_prefix('(').unwrap().strip_suffix(')').unwrap(),
+    inner: comment,
     pos: left,
 };
 
@@ -68,11 +68,12 @@ Whitespace: ast::token::Whitespace<'input> = <left:@L> <whitespace:TokWhitespace
     pos: left,
 };
 
-Line: ast::Line<'input> = <fields:(Whitespace? Field)*> <checksum:(Whitespace? Checksum)?> <comment:(Whitespace? Comment)?> <whitespace:Whitespace?> => ast::Line {
+Line: ast::Line<'input> = <fields:(InlineComment? (Whitespace InlineComment?)? Field)*> <checksum:(InlineComment? (Whitespace InlineComment?)? Checksum)?> <comment:(InlineComment? (Whitespace InlineComment?)? Comment)?> <whitespace:(InlineComment? Whitespace)?> <inline_comment:InlineComment?> => ast::Line {
     fields,
     checksum,
     comment,
     whitespace,
+    inline_comment
 };
 
 Newline: ast::token::Newline = <left:@L> TokNewline => ast::token::Newline { pos: left };
@@ -80,7 +81,7 @@ Newline: ast::token::Newline = <left:@L> TokNewline => ast::token::Newline { pos
 pub File: ast::File<'input> = {
     <lines:(Line Newline)*> <last_line:Line> => ast::File {
         lines,
-        last_line: if last_line.fields.is_empty() && last_line.checksum.is_none() && last_line.comment.is_none() {
+        last_line: if last_line.fields.is_empty() && last_line.checksum.is_none() && last_line.comment.is_none() && last_line.inline_comment.is_none() {
             None
         } else {
             Some(last_line)

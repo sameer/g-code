@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 use token::*;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 /// Representation of a sequence of GCode logically organized as a file.
 pub struct File<'input> {
     pub(crate) lines: Vec<(Line<'input>, Newline)>,
@@ -11,7 +11,7 @@ pub struct File<'input> {
 impl<'input> File<'input> {
     /// Iterate by [`Line`].
     /// The last [`Line`] may or may not be followed by a [`Newline`].
-    pub fn iter<'a>(&'a self) -> impl Iterator<Item = &'a Line<'input>> {
+    pub fn iter(&'input self) -> impl Iterator<Item = &'input Line<'input>> {
         self.lines
             .iter()
             .map(|(line, _)| line)
@@ -20,23 +20,39 @@ impl<'input> File<'input> {
 
     /// Iterating by [`Line`] may be too verbose, so this method is offered as
     /// an alternative for directly examining each [`Field`].
-    pub fn iter_fields<'a>(&'a self) -> impl Iterator<Item = &'a Field<'input>> {
-        self.iter()
-            .map(|line| line.fields.iter().map(|(_, field)| field))
-            .flatten()
+    pub fn iter_fields(&'input self) -> impl Iterator<Item = &'input Field<'input>> {
+        self.iter().map(|line| line.iter_fields()).flatten()
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 /// A sequence of GCode that is either followed by a [`Newline`] or at the end of a file.
 pub struct Line<'input> {
-    pub fields: Vec<(Option<Whitespace<'input>>, Field<'input>)>,
-    pub checksum: Option<(Option<Whitespace<'input>>, Checksum)>,
-    pub comment: Option<(Option<Whitespace<'input>>, Comment<'input>)>,
-    pub whitespace: Option<Whitespace<'input>>,
+    pub fields: Vec<(
+        Option<InlineComment<'input>>,
+        Option<(Whitespace<'input>, Option<InlineComment<'input>>)>,
+        Field<'input>,
+    )>,
+    pub checksum: Option<(
+        Option<InlineComment<'input>>,
+        Option<(Whitespace<'input>, Option<InlineComment<'input>>)>,
+        Checksum,
+    )>,
+    pub comment: Option<(
+        Option<InlineComment<'input>>,
+        Option<(Whitespace<'input>, Option<InlineComment<'input>>)>,
+        Comment<'input>,
+    )>,
+    pub whitespace: Option<(Option<InlineComment<'input>>, Whitespace<'input>)>,
+    pub inline_comment: Option<InlineComment<'input>>,
 }
 
 impl<'input> Line<'input> {
+    /// Iterate by [`Field`] in a line of GCode.
+    pub fn iter_fields(&'input self) -> impl Iterator<Item = &'input Field> {
+        self.fields.iter().map(|(_, _, field)| field)
+    }
+
     /// Validates [`Line::checksum`] against the fields that the line contains.
     /// If the line has no checksum, this will return [`Optional::None`].
     ///
@@ -44,6 +60,7 @@ impl<'input> Line<'input> {
     /// or an [`Result::Err`] containing the computed checksum that differs from the actual.
     pub fn validate_checksum(&'input self) -> Option<Result<(), u8>> {
         if let Some((
+            _,
             _,
             Checksum {
                 inner: checksum, ..
@@ -64,10 +81,10 @@ impl<'input> Line<'input> {
     pub fn compute_checksum(&'input self) -> u8 {
         self.fields
             .iter()
-            .map(|(whitespace, field)| {
+            .map(|(_, whitespace, field)| {
                 whitespace
                     .iter()
-                    .map(|w| w.inner.as_bytes().iter())
+                    .map(|w| w.0.inner.as_bytes().iter())
                     .flatten()
                     .chain(field.iter_bytes())
             })
@@ -75,7 +92,7 @@ impl<'input> Line<'input> {
             .chain(
                 self.checksum
                     .iter()
-                    .map(|(w, _)| w.iter().map(|w| w.iter_bytes()).flatten())
+                    .map(|(_, w, _)| w.iter().map(|w| w.0.iter_bytes()).flatten())
                     .flatten(),
             )
             .fold(0u8, |acc, b| acc ^ b)
@@ -89,7 +106,7 @@ pub mod token {
         fn span(&self) -> Span;
     }
 
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
     /// ASCII letter(s) followed by a [`Value`]
     pub struct Field<'input> {
         pub(crate) letters: &'input str,
@@ -115,7 +132,7 @@ pub mod token {
         }
     }
 
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
     pub enum Value<'input> {
         /// A real number GCode value.
         ///
@@ -127,13 +144,12 @@ pub mod token {
         Integer(usize),
         /// A string GCode value.
         ///
-        /// The delimiting quotes are not included in the value,
-        /// but escaped quotes are NOT unescaped as that
-        /// would require heap allocation.
+        /// The delimiting quotes are included in the value
+        /// and the escaped quotes are NOT unescaped.
         String(&'input str),
     }
 
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
     pub struct Checksum {
         pub(crate) inner: u8,
         pub(crate) span: Span,
@@ -145,7 +161,7 @@ pub mod token {
         }
     }
 
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
     /// A `'\n'` token that delimits [`Line`]s in a [`File`].
     pub struct Newline {
         pub(crate) pos: usize,
@@ -157,7 +173,7 @@ pub mod token {
         }
     }
 
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
     /// Any sequence of ASCII whitespace except for [`Newline`].
     pub struct Whitespace<'input> {
         pub(crate) inner: &'input str,
@@ -176,11 +192,11 @@ pub mod token {
         }
     }
 
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
     /// A semicolon `;` followed by ASCII characters and terminated by a [`Newline`]
     /// or the end of the file.
     ///
-    /// The semicolon is not a part of the inner representation.
+    /// The semicolon is part of the inner representation.
     ///
     /// Some machines/programs will display these comments
     /// as the GCode is executed.
@@ -193,8 +209,8 @@ pub mod token {
     /// by a closing parenthesis `)`.
     /// A [`Newline`] is not allowed in an inline comment.
     ///
-    /// The parentheses are not part of the inner representation.
-    #[derive(Debug, Clone, PartialEq)]
+    /// The parentheses are part of the inner representation.
+    #[derive(Debug, Clone, PartialEq, Eq)]
     pub struct InlineComment<'input> {
         pub(crate) inner: &'input str,
         pub(crate) pos: usize,

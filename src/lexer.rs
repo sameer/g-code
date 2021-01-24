@@ -227,7 +227,10 @@ impl<'input> Iterator for Lexer<'input> {
                             return Some(Err(UnexpectedCharacter(pos, non_ascii)));
                         }
                         Some((end, other)) => {
-                            if !other.is_ascii_digit() && !other.is_ascii_alphabetic() && !other.is_ascii_whitespace() {
+                            if !other.is_ascii_digit()
+                                && !other.is_ascii_alphabetic()
+                                && !other.is_ascii_whitespace()
+                            {
                                 return Some(Err(UnexpectedCharacter(end, other)));
                             }
                             let output = if let Letters(_) | Integer(_) = &original_state {
