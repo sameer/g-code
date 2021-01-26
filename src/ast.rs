@@ -81,18 +81,30 @@ impl<'input> Line<'input> {
     pub fn compute_checksum(&'input self) -> u8 {
         self.fields
             .iter()
-            .map(|(_, whitespace, field)| {
-                whitespace
+            .map(|(comment, whitespace, field)| {
+                comment
                     .iter()
-                    .map(|w| w.0.inner.as_bytes().iter())
+                    .map(|comment| comment.inner.as_bytes().iter())
                     .flatten()
-                    .chain(field.iter_bytes())
+                    .chain(
+                        whitespace
+                            .iter()
+                            .map(|w| w.0.inner.as_bytes().iter())
+                            .flatten()
+                            .chain(field.iter_bytes()),
+                    )
             })
             .flatten()
             .chain(
                 self.checksum
                     .iter()
-                    .map(|(_, w, _)| w.iter().map(|w| w.0.iter_bytes()).flatten())
+                    .map(|(comment, w, _)| {
+                        comment
+                            .iter()
+                            .map(|comment| comment.inner.as_bytes().iter())
+                            .flatten()
+                            .chain(w.iter().map(|w| w.0.iter_bytes()).flatten())
+                    })
                     .flatten(),
             )
             .fold(0u8, |acc, b| acc ^ b)
