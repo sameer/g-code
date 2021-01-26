@@ -8,7 +8,7 @@ pub mod lexer;
 #[cfg(test)]
 mod tests {
     use super::parser::FileParser;
-    use crate::ast::{token::*, Line};
+    use crate::ast::{token::*, Line, Span};
     use crate::lexer::{LexTok, Lexer, LexicalError};
 
     mod parser {
@@ -41,9 +41,9 @@ mod tests {
 
         #[test]
         fn validates_checksums() {
-            let gcode = r#"N0 M106*36 
-        N1 G28*18 
-        N2 M107*39"#;
+            let gcode = r#"N0 M106*36
+N1 G28*18
+N2 M107*39"#;
             let parsed = FileParser::new().parse(gcode, Lexer::new(gcode)).unwrap();
             for (line, checksum) in parsed.iter().zip(&[36u8, 18u8, 39u8]) {
                 assert_eq!(line.compute_checksum(), *checksum);
@@ -59,18 +59,41 @@ mod tests {
         }
 
         #[test]
+        fn checksum_of_line_with_inline_comments_is_correct() {
+            let gcode = "(inline)G0 X0 (inline) (inline) Y0(inline)";
+            let parsed = FileParser::new().parse(gcode, Lexer::new(gcode)).unwrap();
+            assert_eq!(
+                parsed
+                    .iter()
+                    .next()
+                    .unwrap()
+                    .iter_bytes()
+                    .copied()
+                    .collect::<Vec<u8>>(),
+                gcode.as_bytes()
+            );
+            assert_eq!(
+                parsed.iter().next().unwrap().compute_checksum(),
+                gcode.as_bytes().iter().fold(0u8, |acc, x| acc ^ x)
+            );
+        }
+
+        #[test]
         fn inline_comment_is_parsed() {
             let gcode = "(comment)";
             let parsed = FileParser::new().parse(gcode, Lexer::new(gcode)).unwrap();
             assert_eq!(
                 *parsed.iter().next().unwrap(),
                 Line {
-                    inline_comment: InlineComment {
+                    fields: vec![],
+                    checksum: None,
+                    comment: None,
+                    whitespace: None,
+                    inline_comment: vec![InlineComment {
                         inner: "(comment)",
                         pos: 0
-                    }
-                    .into(),
-                    ..Default::default()
+                    }],
+                    span: Span(0, gcode.len())
                 }
             );
         }

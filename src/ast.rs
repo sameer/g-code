@@ -1,6 +1,34 @@
 use std::fmt::Debug;
 use token::*;
 
+#[derive(Clone, Copy, Debug, PartialEq, Hash, Eq)]
+/// A range of bytes in the raw text of the program.
+/// Useful for providing diagnostic information in
+/// higher-level tooling.
+///
+/// The end of the range is exclusive.
+pub struct Span(pub usize, pub usize);
+
+impl std::ops::Add for Span {
+    type Output = Self;
+    fn add(self, rhs: Self) -> Self {
+        Self(self.0.min(rhs.0), self.1.max(rhs.1))
+    }
+}
+impl std::ops::AddAssign for Span {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = Self {
+            0: self.0.min(rhs.0),
+            1: self.1.max(rhs.1),
+        }
+    }
+}
+impl Into<std::ops::Range<usize>> for Span {
+    fn into(self) -> std::ops::Range<usize> {
+        self.0..self.1
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Representation of a sequence of GCode logically organized as a file.
 pub struct File<'input> {
@@ -25,26 +53,31 @@ impl<'input> File<'input> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 /// A sequence of GCode that is either followed by a [`Newline`] or at the end of a file.
 pub struct Line<'input> {
     pub fields: Vec<(
-        Option<InlineComment<'input>>,
-        Option<(Whitespace<'input>, Option<InlineComment<'input>>)>,
+        Vec<InlineComment<'input>>,
+        Vec<(Whitespace<'input>, Vec<InlineComment<'input>>)>,
         Field<'input>,
     )>,
     pub checksum: Option<(
-        Option<InlineComment<'input>>,
-        Option<(Whitespace<'input>, Option<InlineComment<'input>>)>,
+        Vec<InlineComment<'input>>,
+        Vec<(Whitespace<'input>, Vec<InlineComment<'input>>)>,
         Checksum,
     )>,
     pub comment: Option<(
-        Option<InlineComment<'input>>,
-        Option<(Whitespace<'input>, Option<InlineComment<'input>>)>,
+        Vec<InlineComment<'input>>,
+        Vec<(Whitespace<'input>, Vec<InlineComment<'input>>)>,
         Comment<'input>,
     )>,
-    pub whitespace: Option<(Option<InlineComment<'input>>, Whitespace<'input>)>,
-    pub inline_comment: Option<InlineComment<'input>>,
+    pub whitespace: Option<(
+        Vec<(Whitespace<'input>, Vec<InlineComment<'input>>)>,
+        Whitespace<'input>,
+    )>,
+    pub inline_comment: Vec<InlineComment<'input>>,
+
+    pub span: Span,
 }
 
 impl<'input> Line<'input> {
@@ -77,54 +110,106 @@ impl<'input> Line<'input> {
         return None;
     }
 
-    /// XORs bytes in a [`Line`] leading up to the asterisk of a [`Checksum`].
-    pub fn compute_checksum(&'input self) -> u8 {
+    /// Iterate over ALL [`u8`] in a line.
+    pub fn iter_bytes(&'input self) -> impl Iterator<Item = &'input u8> {
         self.fields
             .iter()
-            .map(|(comment, whitespace, field)| {
-                comment
-                    .iter()
-                    .map(|comment| comment.iter_bytes())
-                    .flatten()
-                    .chain(
-                        whitespace
-                            .iter()
-                            .map(|w| {
-                                w.0.iter_bytes()
-                                    .chain(w.1.iter().map(|comment| comment.iter_bytes()).flatten())
-                            })
-                            .flatten()
-                            .chain(field.iter_bytes()),
-                    )
+            .map(|(comments, whitespace, field)| {
+                comments.iter().map(|c| c.iter_bytes()).flatten().chain(
+                    whitespace
+                        .iter()
+                        .map(|w| {
+                            w.0.iter_bytes()
+                                .chain(w.1.iter().map(|c| c.iter_bytes()).flatten())
+                        })
+                        .flatten()
+                        .chain(field.iter_bytes()),
+                )
             })
             .flatten()
             .chain(
                 self.checksum
                     .iter()
-                    .map(|(comment, w, _checksum)| {
-                        comment
+                    .map(|(comments, w, _checksum)| {
+                        comments.iter().map(|c| c.iter_bytes()).flatten().chain(
+                            w.iter()
+                                .map(|w| {
+                                    w.0.iter_bytes().chain(
+                                        w.1.iter().map(|comment| comment.iter_bytes()).flatten(),
+                                    )
+                                })
+                                .flatten(),
+                        )
+                    })
+                    .flatten(),
+            )
+            .chain(
+                self.comment
+                    .iter()
+                    .map(|(comments, whitespace_plus_comments, comment)| {
+                        comments
                             .iter()
-                            .map(|comment| comment.iter_bytes())
+                            .map(|c| c.iter_bytes())
                             .flatten()
                             .chain(
-                                w.iter()
-                                    .map(|w| {
-                                        w.0.iter_bytes().chain(
-                                            w.1.iter()
-                                                .map(|comment| comment.iter_bytes())
-                                                .flatten(),
+                                whitespace_plus_comments
+                                    .iter()
+                                    .map(|(whitespace, comments)| {
+                                        whitespace.iter_bytes().chain(
+                                            comments.iter().map(|c| c.iter_bytes()).flatten(),
                                         )
                                     })
                                     .flatten(),
                             )
+                            .chain(comment.iter_bytes())
                     })
                     .flatten(),
             )
-            .fold(0u8, |acc, b| acc ^ b)
+            .chain(
+                self.whitespace
+                    .iter()
+                    .map(|(whitespace_plus_comments, whitespace)| {
+                        whitespace_plus_comments
+                            .iter()
+                            .map(|(w, comments)| {
+                                w.iter_bytes().chain(
+                                    comments
+                                        .iter()
+                                        .map(|comment| comment.iter_bytes())
+                                        .flatten(),
+                                )
+                            })
+                            .flatten()
+                            .chain(whitespace.iter_bytes())
+                    })
+                    .flatten(),
+            )
+            .chain(
+                self.inline_comment
+                    .iter()
+                    .map(|comment| comment.iter_bytes())
+                    .flatten(),
+            )
+    }
+
+    /// XORs bytes in a [`Line`] leading up to the asterisk of a [`Checksum`].
+    pub fn compute_checksum(&'input self) -> u8 {
+        let take = if let Some((_, _, checksum)) = &self.checksum {
+            checksum.span.0
+        } else if let Some((_, _, comment)) = &self.comment {
+            comment.pos
+        } else {
+            self.span.1
+        } - self.span.0;
+        dbg!(String::from_utf8(
+            self.iter_bytes().take(take).copied().collect::<Vec<u8>>()
+        ));
+        self.iter_bytes().take(take).fold(0u8, |acc, b| acc ^ b)
     }
 }
 
 pub mod token {
+    use super::Span;
     use std::cmp::PartialEq;
 
     pub trait Spanned {
@@ -230,6 +315,12 @@ pub mod token {
         pub(crate) pos: usize,
     }
 
+    impl<'input> Comment<'input> {
+        pub fn iter_bytes(&'input self) -> impl Iterator<Item = &'input u8> {
+            self.inner.as_bytes().iter()
+        }
+    }
+
     impl<'input> Spanned for Comment<'input> {
         fn span(&self) -> Span {
             Span(self.pos, self.pos + self.inner.len())
@@ -256,34 +347,6 @@ pub mod token {
     impl<'input> Spanned for InlineComment<'input> {
         fn span(&self) -> Span {
             Span(self.pos, self.pos + self.inner.len())
-        }
-    }
-
-    #[derive(Clone, Copy, Debug, PartialEq, Hash, Eq)]
-    /// A range of bytes in the raw text of the program.
-    /// Useful for providing diagnostic information in
-    /// higher-level tooling.
-    ///
-    /// The end of the range is exclusive.
-    pub struct Span(pub usize, pub usize);
-
-    impl std::ops::Add for Span {
-        type Output = Self;
-        fn add(self, rhs: Self) -> Self {
-            Self(self.0.min(rhs.0), self.1.max(rhs.1))
-        }
-    }
-    impl std::ops::AddAssign for Span {
-        fn add_assign(&mut self, rhs: Self) {
-            *self = Self {
-                0: self.0.min(rhs.0),
-                1: self.1.max(rhs.1),
-            }
-        }
-    }
-    impl Into<std::ops::Range<usize>> for Span {
-        fn into(self) -> std::ops::Range<usize> {
-            self.0..self.1
         }
     }
 }
