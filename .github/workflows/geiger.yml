@@ -1,0 +1,25 @@
+name: Geiger
+on:
+  push:
+    paths:
+      - '**/Cargo.toml'
+      - '**/Cargo.lock'
+  pull_request:
+    paths:
+      - '**/Cargo.toml'
+      - '**/Cargo.lock'
+jobs:
+  geiger:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: actions-rs/install@v0.1
+        with:
+          crate: cargo-geiger
+          version: latest
+          use-tool-cache: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: geiger
