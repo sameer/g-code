@@ -58,6 +58,20 @@ impl<'input> File<'input> {
     }
 }
 
+impl<'input> Spanned for File<'input> {
+    fn span(&self) -> Span {
+        Span(0, 0)
+            + if let Some(last_line) = &self.last_line {
+                last_line.span()
+            } else {
+                self.lines
+                    .last()
+                    .map(|(_, newline)| newline.span())
+                    .unwrap_or(Span(0, 0))
+            }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// A sequence of GCode that is either followed by a [`Newline`] or at the end of a file.
 pub struct Line<'input> {
@@ -83,6 +97,12 @@ pub struct Line<'input> {
     pub inline_comment: Vec<InlineComment<'input>>,
 
     pub span: Span,
+}
+
+impl<'input> Spanned for Line<'input> {
+    fn span(&self) -> Span {
+        self.span
+    }
 }
 
 impl<'input> Line<'input> {

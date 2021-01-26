@@ -13,7 +13,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     mod parser {
-        use super::{*, assert_eq};
+        use super::{assert_eq, *};
 
         #[test]
         fn parses_svg2gcode_output() {
@@ -80,6 +80,42 @@ N2 M107*39"#;
         }
 
         #[test]
+        fn checksum_of_line_with_comment_is_correct() {
+            let gcode = "(inline)G0 X0 (inline) (inline) Y0(inline);eolcomment";
+            let parsed = FileParser::new().parse(gcode, Lexer::new(gcode)).unwrap();
+            assert_eq!(
+                parsed.iter().next().unwrap().compute_checksum(),
+                gcode
+                    .split(';')
+                    .next()
+                    .unwrap()
+                    .as_bytes()
+                    .iter()
+                    .fold(0u8, |acc, x| acc ^ x)
+            );
+        }
+
+        #[test]
+        fn checksum_of_line_with_checkum_and_comment_is_correct() {
+            let gcode = "(inline)G0 X0 (inline) (inline) Y0(inline)*118;eolcomment";
+            let parsed = FileParser::new().parse(gcode, Lexer::new(gcode)).unwrap();
+            assert_eq!(
+                parsed.iter().next().unwrap().validate_checksum(),
+                Some(Ok(()))
+            );
+            assert_eq!(
+                parsed.iter().next().unwrap().compute_checksum(),
+                gcode
+                    .split('*')
+                    .next()
+                    .unwrap()
+                    .as_bytes()
+                    .iter()
+                    .fold(0u8, |acc, x| acc ^ x)
+            );
+        }
+
+        #[test]
         fn inline_comment_is_parsed() {
             let gcode = "(comment)";
             let parsed = FileParser::new().parse(gcode, Lexer::new(gcode)).unwrap();
@@ -101,7 +137,7 @@ N2 M107*39"#;
     }
 
     mod lexer {
-        use super::{*, assert_eq};
+        use super::{assert_eq, *};
 
         #[test]
         fn escaped_quotes_are_lexed() {

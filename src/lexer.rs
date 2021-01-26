@@ -227,6 +227,10 @@ impl<'input> Iterator for Lexer<'input> {
                             self.state = InlineComment(end);
                             Some((start, end))
                         }
+                        Some((end, ';')) => {
+                            self.state = Comment(end);
+                            Some((start, end))
+                        }
                         Some((pos, non_ascii)) if !non_ascii.is_ascii() => {
                             return Some(Err(UnexpectedCharacter(pos, non_ascii)));
                         }
