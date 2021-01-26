@@ -51,6 +51,11 @@ impl<'input> File<'input> {
     pub fn iter_fields(&'input self) -> impl Iterator<Item = &'input Field<'input>> {
         self.iter().map(|line| line.iter_fields()).flatten()
     }
+
+    /// Iterate by [`u8`]. This will return bytes identical to [`str::as_bytes`].[`slice.iter`].
+    pub fn iter_bytes(&'input self) -> impl Iterator<Item = &'input u8> {
+        self.iter().map(|line| line.iter_bytes()).flatten()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -87,7 +92,7 @@ impl<'input> Line<'input> {
     }
 
     /// Validates [`Line::checksum`] against the fields that the line contains.
-    /// If the line has no checksum, this will return [`Optional::None`].
+    /// If the line has no checksum, this will return [`Option::None`].
     ///
     /// If the line does have a checksum, this will return an empty [`Result::Ok`]
     /// or an [`Result::Err`] containing the computed checksum that differs from the actual.
@@ -201,9 +206,6 @@ impl<'input> Line<'input> {
         } else {
             self.span.1
         } - self.span.0;
-        dbg!(String::from_utf8(
-            self.iter_bytes().take(take).copied().collect::<Vec<u8>>()
-        ));
         self.iter_bytes().take(take).fold(0u8, |acc, b| acc ^ b)
     }
 }
@@ -227,7 +229,7 @@ pub mod token {
 
     impl<'input> Field<'input> {
         /// Iterate over the bytes of the raw text.
-        /// Used in [`Line::compute_checksum`].
+        /// Used in [`Line.compute_checksum`].
         pub fn iter_bytes(&'input self) -> impl Iterator<Item = &'input u8> {
             self.letters
                 .as_bytes()
@@ -272,7 +274,7 @@ pub mod token {
     }
 
     #[derive(Debug, Clone, PartialEq, Eq)]
-    /// A `'\n'` token that delimits [`Line`]s in a [`File`].
+    /// A `'\n'` token that delimits [`super::Line`]s in a [`super::File`].
     pub struct Newline {
         pub(crate) pos: usize,
     }
