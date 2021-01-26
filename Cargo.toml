@@ -11,4 +11,4 @@ lalrpop = { version = "0.19", features = [ ], default-features = false }
 lalrpop-util = { version = "0.19", features =  [ ], default-features = false }
 
 [dev-dependencies]
-pretty_assertions = "0.6.1"
+pretty_assertions = "0.6"

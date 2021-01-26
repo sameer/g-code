@@ -10,9 +10,10 @@ mod tests {
     use super::parser::FileParser;
     use crate::ast::{token::*, Line, Span};
     use crate::lexer::{LexTok, Lexer, LexicalError};
+    use pretty_assertions::assert_eq;
 
     mod parser {
-        use super::*;
+        use super::{*, assert_eq};
 
         #[test]
         fn parses_svg2gcode_output() {
@@ -100,7 +101,7 @@ N2 M107*39"#;
     }
 
     mod lexer {
-        use super::*;
+        use super::{*, assert_eq};
 
         #[test]
         fn escaped_quotes_are_lexed() {
