@@ -84,12 +84,15 @@ impl<'input> Line<'input> {
             .map(|(comment, whitespace, field)| {
                 comment
                     .iter()
-                    .map(|comment| comment.inner.as_bytes().iter())
+                    .map(|comment| comment.iter_bytes())
                     .flatten()
                     .chain(
                         whitespace
                             .iter()
-                            .map(|w| w.0.inner.as_bytes().iter())
+                            .map(|w| {
+                                w.0.iter_bytes()
+                                    .chain(w.1.iter().map(|comment| comment.iter_bytes()).flatten())
+                            })
                             .flatten()
                             .chain(field.iter_bytes()),
                     )
@@ -98,12 +101,22 @@ impl<'input> Line<'input> {
             .chain(
                 self.checksum
                     .iter()
-                    .map(|(comment, w, _)| {
+                    .map(|(comment, w, _checksum)| {
                         comment
                             .iter()
-                            .map(|comment| comment.inner.as_bytes().iter())
+                            .map(|comment| comment.iter_bytes())
                             .flatten()
-                            .chain(w.iter().map(|w| w.0.iter_bytes()).flatten())
+                            .chain(
+                                w.iter()
+                                    .map(|w| {
+                                        w.0.iter_bytes().chain(
+                                            w.1.iter()
+                                                .map(|comment| comment.iter_bytes())
+                                                .flatten(),
+                                        )
+                                    })
+                                    .flatten(),
+                            )
                     })
                     .flatten(),
             )
@@ -217,6 +230,12 @@ pub mod token {
         pub(crate) pos: usize,
     }
 
+    impl<'input> Spanned for Comment<'input> {
+        fn span(&self) -> Span {
+            Span(self.pos, self.pos + self.inner.len())
+        }
+    }
+
     /// An opening parenthesis `(` followed by ASCII characters and terminated
     /// by a closing parenthesis `)`.
     /// A [`Newline`] is not allowed in an inline comment.
@@ -228,7 +247,13 @@ pub mod token {
         pub(crate) pos: usize,
     }
 
-    impl<'input> Spanned for Comment<'input> {
+    impl<'input> InlineComment<'input> {
+        pub fn iter_bytes(&'input self) -> impl Iterator<Item = &'input u8> {
+            self.inner.as_bytes().iter()
+        }
+    }
+
+    impl<'input> Spanned for InlineComment<'input> {
         fn span(&self) -> Span {
             Span(self.pos, self.pos + self.inner.len())
         }
