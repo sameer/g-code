@@ -193,6 +193,16 @@ N2 M107*39"#;
             )
         }
 
+
+        #[test]
+        fn minus_is_lexed() {
+            let gcode = "-";
+            assert_eq!(
+                Lexer::new(gcode).next(),
+                Some(Ok((0, LexTok::Minus, gcode.len())))
+            )
+        }
+
         #[test]
         fn newline_is_lexed() {
             let gcode = "\n";

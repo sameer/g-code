@@ -233,6 +233,7 @@ impl<'input> Line<'input> {
 pub mod token {
     use super::Span;
     use std::cmp::PartialEq;
+    use num_rational::Ratio;
 
     pub trait Spanned {
         fn span(&self) -> Span;
@@ -268,11 +269,13 @@ pub mod token {
     pub enum Value<'input> {
         /// A real number GCode value.
         ///
-        /// While this kind of value is often a floating point
-        /// number, it is represented as a mixed fraction to
+        /// While this is often a floating point number,
+        /// that was converted to a string,
+        /// it is parsed as a rational number to
         /// ensure numerical stability.
-        Rational(usize, usize),
-        /// An integer GCode value fitting in a [`usize`].
+        Rational(Ratio<i64>),
+        /// An unsigned integer GCode value fitting in a [`usize`].
+        /// For instance, this would be the 0 in G0.
         Integer(usize),
         /// A string GCode value.
         ///
