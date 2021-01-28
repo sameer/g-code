@@ -42,6 +42,25 @@ pub enum LexTok<'input> {
     Whitespace(&'input str),
 }
 
+impl<'input> LexTok<'input> {
+    pub(crate) fn lalrpop_name_for_display(lalrpop_name: &str) -> Option<&'static str> {
+        match lalrpop_name {
+            "TokNewline" => r#"\n"#.into(),
+            "TokDot" => ".".into(),
+            "TokStar" => "*".into(),
+            "TokMinus" => "-".into(),
+            "TokPercent" => "%".into(),
+            "TokString" => r#""[^"]*(""[^"]*)*""#.into(),
+            "TokInlineComment" => r#"\(.*?\)"#.into(),
+            "TokComment" => r#";[^\n]*"#.into(),
+            "TokInteger" => "[0-9]+".into(),
+            "TokLetters" => "[a-zA-Z]+".into(),
+            "TokWhitespace" => r#"[^\S\n]+"#.into(),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum LexerState {
     Init,

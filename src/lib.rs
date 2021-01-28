@@ -48,13 +48,23 @@ pub fn into_diagnostic<'a: 'input, 'input>(err: &'a ParseError<'input>) -> Diagn
                 UnrecognizedToken {
                     token: (left, _token, right),
                     expected,
-                } => labels.push(
-                    Label::primary((), *left..*right)
-                        .with_message(format!("expected any of {:?}", expected)),
-                ),
+                } => labels.push(Label::primary((), *left..*right).with_message(format!(
+                        "expected any of {}",
+                        expected
+                            .iter()
+                            .map(|e| lexer::LexTok::lalrpop_name_for_display(e).unwrap_or(e))
+                            .collect::<Vec<_>>()
+                            .join("|")
+                    ))),
                 UnrecognizedEOF { location, expected } => labels.push(
-                    Label::primary((), *location..*location)
-                        .with_message(format!("expected any of {:?}", expected)),
+                    Label::primary((), *location..*location).with_message(format!(
+                        "expected any of {}",
+                        expected
+                            .iter()
+                            .map(|e| lexer::LexTok::lalrpop_name_for_display(e).unwrap_or(e))
+                            .collect::<Vec<_>>()
+                            .join("|")
+                    )),
                 ),
                 InvalidToken { location } => {
                     labels.push(Label::primary((), *location..*location + 1))
