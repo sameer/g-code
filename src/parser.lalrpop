@@ -146,3 +146,15 @@ pub File: ast::File<'input> = {
         span: ast::Span(left, right)
     },
 };
+
+pub Snippet: ast::Snippet<'input> = {
+    <left:@L> <lines:(Line Newline)*> <last_line:Line> <right:@R> => ast::Snippet {
+        lines,
+        last_line: if last_line.fields.is_empty() && last_line.checksum.is_none() && last_line.comment.is_none() && last_line.inline_comment.is_empty() {
+            None
+        } else {
+            Some(last_line)
+        },
+        span: ast::Span(left, right)
+    },
+};

@@ -27,8 +27,8 @@ pub fn into_diagnostic<'a: 'input, 'input>(err: &'a ParseError<'input>) -> Diagn
                     UnexpectedCharacter(..) => "unexpected character",
                     UnexpectedNewline => "unexpected newline",
                     UnexpectedEOF => "unexpected end of file",
-                    ParseIntError(..) => "failed to convert integer",
-                    ParseRatioError(..) => "failed to convert ratio",
+                    ParseIntError(..) => "failed to parse integer",
+                    ParseRatioError(..) => "failed to parse ratio",
                 },
             }
         ))
@@ -268,6 +268,15 @@ N2 M107*39"#;
             assert_eq!(
                 Lexer::new(gcode).next(),
                 Some(Ok((0, LexTok::Minus, gcode.len())))
+            )
+        }
+
+        #[test]
+        fn percent_is_lexed() {
+            let gcode = "%";
+            assert_eq!(
+                Lexer::new(gcode).next(),
+                Some(Ok((0, LexTok::Percent, gcode.len())))
             )
         }
 

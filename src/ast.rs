@@ -62,6 +62,39 @@ impl<'input> File<'input> {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+/// A sequence of GCode that may be inserted into a file.
+///
+/// This might be used when verifying user-supplied tool
+/// start/stop sequences.
+pub struct Snippet<'input> {
+    pub(crate) lines: Vec<(Line<'input>, Newline)>,
+    pub(crate) last_line: Option<Line<'input>>,
+    pub(crate) span: Span,
+}
+
+impl<'input> Snippet<'input> {
+    /// Iterate by [`Line`].
+    /// The last [`Line`] may or may not be followed by a [`Newline`].
+    pub fn iter(&'input self) -> impl Iterator<Item = &'input Line<'input>> {
+        self.lines
+            .iter()
+            .map(|(line, _)| line)
+            .chain(self.last_line.iter())
+    }
+
+    /// Iterating by [`Line`] may be too verbose, so this method is offered as
+    /// an alternative for directly examining each [`Field`].
+    pub fn iter_fields(&'input self) -> impl Iterator<Item = &'input Field<'input>> {
+        self.iter().map(|line| line.iter_fields()).flatten()
+    }
+
+    /// Iterate by [`u8`]. This will return bytes identical to [`str::as_bytes`].[`slice.iter`].
+    pub fn iter_bytes(&'input self) -> impl Iterator<Item = &'input u8> {
+        self.iter().map(|line| line.iter_bytes()).flatten()
+    }
+}
+
 impl<'input> Spanned for File<'input> {
     fn span(&self) -> Span {
         self.span
