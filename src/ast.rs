@@ -31,9 +31,13 @@ impl Into<std::ops::Range<usize>> for Span {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Representation of a sequence of GCode logically organized as a file.
+/// This may also be referred to as a program.
 pub struct File<'input> {
+    pub(crate) start_percent: bool,
     pub(crate) lines: Vec<(Line<'input>, Newline)>,
     pub(crate) last_line: Option<Line<'input>>,
+    pub(crate) end_percent: bool,
+    pub(crate) span: Span,
 }
 
 impl<'input> File<'input> {
@@ -60,15 +64,7 @@ impl<'input> File<'input> {
 
 impl<'input> Spanned for File<'input> {
     fn span(&self) -> Span {
-        Span(0, 0)
-            + if let Some(last_line) = &self.last_line {
-                last_line.span()
-            } else {
-                self.lines
-                    .last()
-                    .map(|(_, newline)| newline.span())
-                    .unwrap_or(Span(0, 0))
-            }
+        self.span
     }
 }
 
@@ -232,8 +228,8 @@ impl<'input> Line<'input> {
 
 pub mod token {
     use super::Span;
-    use std::cmp::PartialEq;
     use num_rational::Ratio;
+    use std::cmp::PartialEq;
 
     pub trait Spanned {
         fn span(&self) -> Span;

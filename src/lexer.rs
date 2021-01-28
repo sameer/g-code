@@ -1,6 +1,6 @@
+use num_rational::ParseRatioError;
 use std::num::ParseIntError;
 use std::str::CharIndices;
-use num_rational::ParseRatioError;
 
 pub type Spanned<Tok, Pos, Error> = Result<(Pos, Tok, Pos), Error>;
 
@@ -23,8 +23,8 @@ pub enum LexicalError {
     /// both of which require a closing delimiter
     UnexpectedEOF,
     /// A [`LexTok::Integer`] was out of the bounds of a `usize`.
-    ParseIntError(ParseIntError),
-    ParseRatioError(ParseRatioError)
+    ParseIntError(ParseIntError, usize, usize),
+    ParseRatioError(ParseRatioError, usize, usize),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -33,6 +33,7 @@ pub enum LexTok<'input> {
     Dot,
     Star,
     Minus,
+    Percent,
     String(&'input str),
     InlineComment(&'input str),
     Comment(&'input str),
@@ -48,6 +49,7 @@ enum LexerState {
     Dot(usize),
     Star(usize),
     Minus(usize),
+    Percent(usize),
     String {
         start: usize,
         prev_could_be_escaped_quote: bool,
@@ -96,6 +98,7 @@ impl<'input> Iterator for Lexer<'input> {
                         Some((pos, '.')) => self.state = Dot(pos),
                         Some((pos, '*')) => self.state = Star(pos),
                         Some((pos, '-')) => self.state = Minus(pos),
+                        Some((pos, '%')) => self.state = Percent(pos),
                         Some((pos, digit)) if digit.is_ascii_digit() => self.state = Integer(pos),
                         Some((pos, letter)) if letter.is_ascii_alphabetic() => {
                             self.state = Letters(pos)
@@ -109,7 +112,7 @@ impl<'input> Iterator for Lexer<'input> {
                         None => return None,
                     };
                 }
-                Newline(pos) | Dot(pos) | Star(pos) | Minus(pos) => {
+                Newline(pos) | Dot(pos) | Star(pos) | Minus(pos) | Percent(pos) => {
                     let prev_state = self.state.clone();
                     self.state = Init;
                     return Some(Ok((
@@ -119,6 +122,7 @@ impl<'input> Iterator for Lexer<'input> {
                             Dot(_) => LexTok::Dot,
                             Star(_) => LexTok::Star,
                             Minus(_) => LexTok::Minus,
+                            Percent(_) => LexTok::Percent,
                             _ => unreachable!(),
                         },
                         pos + 1,
@@ -239,6 +243,10 @@ impl<'input> Iterator for Lexer<'input> {
                         }
                         Some((end, ';')) => {
                             self.state = Comment(end);
+                            Some((start, end))
+                        }
+                        Some((end, '%')) => {
+                            self.state = Percent(end);
                             Some((start, end))
                         }
                         Some((pos, non_ascii)) if !non_ascii.is_ascii() => {

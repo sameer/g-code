@@ -1,9 +1,72 @@
-use lalrpop_util::lalrpop_mod;
+use lalrpop_util::{lalrpop_mod, ParseError as LalrpopParseError};
 
 lalrpop_mod!(pub parser);
 
+use codespan_reporting::diagnostic::{Diagnostic as CodespanDiagnostic, Label};
+
 pub mod ast;
 pub mod lexer;
+
+pub type ParseError<'input> = LalrpopParseError<usize, lexer::LexTok<'input>, lexer::LexicalError>;
+pub type Diagnostic = CodespanDiagnostic<()>;
+
+/// Convenience function for converting a parsing error
+/// into a codespan diagnostic for displaying to a user.
+pub fn into_diagnostic<'a: 'input, 'input>(err: &'a ParseError<'input>) -> Diagnostic {
+    use lexer::LexicalError::*;
+    use LalrpopParseError::*;
+    Diagnostic::error()
+        .with_message(format!(
+            "could not parse GCode: {}",
+            match err {
+                UnrecognizedToken { .. } => "unexpected token",
+                UnrecognizedEOF { .. } => "unexpected end of file",
+                InvalidToken { .. } => "invalid token",
+                ExtraToken { .. } => "extra token",
+                User { error } => match error {
+                    UnexpectedCharacter(..) => "unexpected character",
+                    UnexpectedNewline => "unexpected newline",
+                    UnexpectedEOF => "unexpected end of file",
+                    ParseIntError(..) => "failed to convert integer",
+                    ParseRatioError(..) => "failed to convert ratio",
+                },
+            }
+        ))
+        .with_labels({
+            let mut labels = vec![];
+            match err {
+                UnrecognizedToken {
+                    token: (left, _token, right),
+                    expected,
+                } => labels.push(
+                    Label::primary((), *left..*right)
+                        .with_message(format!("expected any of {:?}", expected)),
+                ),
+                UnrecognizedEOF { location, expected } => labels.push(
+                    Label::primary((), *location..*location)
+                        .with_message(format!("expected any of {:?}", expected)),
+                ),
+                InvalidToken { location } => {
+                    labels.push(Label::primary((), *location..*location + 1))
+                }
+                ExtraToken {
+                    token: (left, _token, right),
+                } => labels.push(Label::primary((), *left..*right)),
+                User { error } => match error {
+                    UnexpectedCharacter(location, _) => {
+                        labels.push(Label::primary((), *location..*location + 1))
+                    }
+                    UnexpectedNewline => {}
+                    UnexpectedEOF => {}
+                    ParseIntError(err, start, end) => labels
+                        .push(Label::primary((), *start..*end).with_message(format!("{}", err))),
+                    ParseRatioError(err, start, end) => labels
+                        .push(Label::primary((), *start..*end).with_message(format!("{}", err))),
+                },
+            }
+            labels
+        })
+}
 
 #[cfg(test)]
 mod tests {
@@ -18,6 +81,12 @@ mod tests {
         #[test]
         fn parses_svg2gcode_output() {
             let gcode = include_str!("../tests/vandy_commodores_logo.gcode");
+            FileParser::new().parse(gcode, Lexer::new(gcode)).unwrap();
+        }
+
+        #[test]
+        fn parses_ncviewer_sample() {
+            let gcode = include_str!("../tests/ncviewer_sample.gcode");
             FileParser::new().parse(gcode, Lexer::new(gcode)).unwrap();
         }
 
@@ -192,7 +261,6 @@ N2 M107*39"#;
                 Some(Ok((0, LexTok::Star, gcode.len())))
             )
         }
-
 
         #[test]
         fn minus_is_lexed() {
