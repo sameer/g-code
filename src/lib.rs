@@ -25,8 +25,18 @@ pub fn into_diagnostic<'a: 'input, 'input>(err: &'a ParseError<'input>) -> Diagn
                 ExtraToken { .. } => "extra token",
                 User { error } => match error {
                     UnexpectedCharacter(..) => "unexpected character",
-                    UnexpectedNewline => "unexpected newline",
-                    UnexpectedEOF => "unexpected end of file",
+                    UnexpectedNewline(_, state) => match state {
+                        lexer::LexerState::InlineComment(_) =>
+                            "unexpected newline while building inline comment",
+                        _ => unreachable!(),
+                    },
+                    UnexpectedEOF(_, state) => match state {
+                        lexer::LexerState::InlineComment(_) =>
+                            "unexpected end of file while building inline comment",
+                        lexer::LexerState::String { .. } =>
+                            "unexpected end of file while building string",
+                        _ => unreachable!(),
+                    },
                     ParseIntError(..) => "failed to parse integer",
                     ParseRatioError(..) => "failed to parse ratio",
                 },
@@ -56,8 +66,37 @@ pub fn into_diagnostic<'a: 'input, 'input>(err: &'a ParseError<'input>) -> Diagn
                     UnexpectedCharacter(location, _) => {
                         labels.push(Label::primary((), *location..*location + 1))
                     }
-                    UnexpectedNewline => {}
-                    UnexpectedEOF => {}
+                    UnexpectedNewline(pos, state) => match state {
+                        lexer::LexerState::InlineComment(start) => {
+                            labels.push(
+                                Label::primary((), *pos..*pos + 1)
+                                    .with_message("expected a closing `)` before this"),
+                            );
+                            labels.push(
+                                Label::secondary((), *start..*start + 1)
+                                    .with_message("token starts here".to_owned()),
+                            );
+                        }
+                        _ => unreachable!(),
+                    },
+                    UnexpectedEOF(pos, state) => match state {
+                        lexer::LexerState::String { start, .. }
+                        | lexer::LexerState::InlineComment(start) => {
+                            labels.push(Label::primary((), *pos..*pos + 1).with_message(format!(
+                                "expected a closing `{}` after this",
+                                match state {
+                                    lexer::LexerState::String { .. } => '\"',
+                                    lexer::LexerState::InlineComment(_) => ')',
+                                    _ => unreachable!(),
+                                },
+                            )));
+                            labels.push(
+                                Label::secondary((), *start..*start + 1)
+                                    .with_message("token starts here".to_owned()),
+                            );
+                        }
+                        _ => unreachable!(),
+                    },
                     ParseIntError(err, start, end) => labels
                         .push(Label::primary((), *start..*end).with_message(format!("{}", err))),
                     ParseRatioError(err, start, end) => labels
@@ -72,7 +111,7 @@ pub fn into_diagnostic<'a: 'input, 'input>(err: &'a ParseError<'input>) -> Diagn
 mod tests {
     use super::parser::FileParser;
     use crate::ast::{token::*, Line, Span};
-    use crate::lexer::{LexTok, Lexer, LexicalError};
+    use crate::lexer::{LexTok, Lexer, LexerState, LexicalError};
     use pretty_assertions::assert_eq;
 
     mod parser {
@@ -333,24 +372,36 @@ N2 M107*39"#;
         #[test]
         fn unterminated_quote_returns_unexpected_eof_error() {
             assert_eq!(
-                Lexer::new(r#""this is a string"#).next(),
-                Some(Err(LexicalError::UnexpectedEOF))
+                Lexer::new(r#""x"#).next(),
+                Some(Err(LexicalError::UnexpectedEOF(
+                    1,
+                    LexerState::String {
+                        start: 0,
+                        prev_could_be_escaped_quote: false,
+                    }
+                )))
             )
         }
 
         #[test]
         fn unterminated_inline_comment_returns_unexpected_eof_error() {
             assert_eq!(
-                Lexer::new("(this is a comment").next(),
-                Some(Err(LexicalError::UnexpectedEOF))
+                Lexer::new("(x").next(),
+                Some(Err(LexicalError::UnexpectedEOF(
+                    1,
+                    LexerState::InlineComment(0)
+                )))
             )
         }
 
         #[test]
         fn unterminated_inline_comment_followed_by_newline_returns_unexpected_newline_error() {
             assert_eq!(
-                Lexer::new("(this is a comment\n)").next(),
-                Some(Err(LexicalError::UnexpectedNewline))
+                Lexer::new("(x\n)").next(),
+                Some(Err(LexicalError::UnexpectedNewline(
+                    2,
+                    LexerState::InlineComment(0)
+                )))
             )
         }
     }

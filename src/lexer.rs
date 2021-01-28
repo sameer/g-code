@@ -18,10 +18,10 @@ pub enum LexicalError {
     /// or its presence does not make sense in the context of GCode (i.e. a stray dollar sign)
     UnexpectedCharacter(usize, char),
     /// A [`LexTok::InlineComment`] started but a [`LexTok::Newline`] was encountered before it was finished.
-    UnexpectedNewline,
+    UnexpectedNewline(usize, LexerState),
     /// Input ended prematurely while building a [`LexTok::String`] or [`LexTok::InlineComment`]
     /// both of which require a closing delimiter
-    UnexpectedEOF,
+    UnexpectedEOF(usize, LexerState),
     /// A [`LexTok::Integer`] was out of the bounds of a `usize`.
     ParseIntError(ParseIntError, usize, usize),
     ParseRatioError(ParseRatioError, usize, usize),
@@ -43,7 +43,7 @@ pub enum LexTok<'input> {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-enum LexerState {
+pub enum LexerState {
     Init,
     Newline(usize),
     Dot(usize),
@@ -168,12 +168,17 @@ impl<'input> Iterator for Lexer<'input> {
                                 self.input.len(),
                             )));
                         } else {
-                            return Some(Err(UnexpectedEOF));
+                            return Some(Err(UnexpectedEOF(
+                                self.input.len().saturating_sub(1),
+                                self.state.clone(),
+                            )));
                         }
                     }
                 },
                 InlineComment(start) => match self.chars.next() {
-                    Some((_, '\n')) => return Some(Err(UnexpectedNewline)),
+                    Some((pos, '\n')) => {
+                        return Some(Err(UnexpectedNewline(pos, self.state.clone())))
+                    }
                     Some((end, ')')) => {
                         self.state = Init;
                         return Some(Ok((
@@ -185,7 +190,12 @@ impl<'input> Iterator for Lexer<'input> {
                     }
                     Some((_, c)) if c.is_ascii() => {}
                     Some((pos, other)) => return Some(Err(UnexpectedCharacter(pos, other))),
-                    None => return Some(Err(UnexpectedEOF)),
+                    None => {
+                        return Some(Err(UnexpectedEOF(
+                            self.input.len().saturating_sub(1),
+                            self.state.clone(),
+                        )))
+                    }
                 },
                 Comment(start) => match self.chars.next() {
                     None => {
