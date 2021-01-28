@@ -259,7 +259,7 @@ impl<'input> Iterator for Lexer<'input> {
                             {
                                 return Some(Err(UnexpectedCharacter(end, other)));
                             }
-                            let output = if let Letters(_) | Integer(_) = &original_state {
+                            if let Letters(_) | Integer(_) = &original_state {
                                 if other.is_ascii_whitespace() && other != '\n' {
                                     self.state = Whitespace(end);
                                     Some((start, end))
@@ -290,13 +290,12 @@ impl<'input> Iterator for Lexer<'input> {
                                 } else {
                                     None
                                 },
-                            );
-                            output
+                            )
                         }
                     };
 
-                    match output {
-                        Some((start, end)) => match original_state {
+                    if let Some((start, end)) = output {
+                        match original_state {
                             Whitespace(_) => {
                                 return Some(Ok((
                                     start,
@@ -319,8 +318,7 @@ impl<'input> Iterator for Lexer<'input> {
                                 )))
                             }
                             _ => unreachable!(),
-                        },
-                        None => {}
+                        }
                     }
                 }
             }

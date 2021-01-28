@@ -128,7 +128,7 @@ impl<'input> Line<'input> {
                 return Some(Ok(()));
             }
         }
-        return None;
+        None
     }
 
     /// Iterate over ALL [`u8`] in a line.
