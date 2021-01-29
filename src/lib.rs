@@ -49,7 +49,7 @@ pub fn into_diagnostic<'a: 'input, 'input>(err: &'a ParseError<'input>) -> Diagn
                     token: (left, _token, right),
                     expected,
                 } => labels.push(Label::primary((), *left..*right).with_message(format!(
-                        "expected any of {}",
+                        "expected {}",
                         expected
                             .iter()
                             .map(|e| lexer::LexTok::lalrpop_name_for_display(e).unwrap_or(e))
@@ -58,7 +58,7 @@ pub fn into_diagnostic<'a: 'input, 'input>(err: &'a ParseError<'input>) -> Diagn
                     ))),
                 UnrecognizedEOF { location, expected } => labels.push(
                     Label::primary((), *location..*location).with_message(format!(
-                        "expected any of {}",
+                        "expected {}",
                         expected
                             .iter()
                             .map(|e| lexer::LexTok::lalrpop_name_for_display(e).unwrap_or(e))
