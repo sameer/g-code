@@ -111,7 +111,6 @@ impl<'input> Spanned for Snippet<'input> {
     }
 }
 
-
 type PrecedingWhitespaceAndComments<'input> = Vec<(Whitespace<'input>, Vec<InlineComment<'input>>)>;
 type WrappedVec<'input, T> = Vec<(
     Vec<InlineComment<'input>>,
@@ -124,17 +123,13 @@ type WrappedOpt<'input, T> = Option<(
     T,
 )>;
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// A sequence of GCode that is either followed by a [`Newline`] or at the end of a file.
 pub struct Line<'input> {
     pub(crate) fields: WrappedVec<'input, Field<'input>>,
     pub(crate) checksum: WrappedOpt<'input, Checksum>,
     pub(crate) comment: WrappedOpt<'input, Comment<'input>>,
-    pub(crate) whitespace: Option<(
-        PrecedingWhitespaceAndComments<'input>,
-        Whitespace<'input>,
-    )>,
+    pub(crate) whitespace: Option<(PrecedingWhitespaceAndComments<'input>, Whitespace<'input>)>,
     pub(crate) inline_comment: Vec<InlineComment<'input>>,
     pub(crate) span: Span,
 }

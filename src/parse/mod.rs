@@ -4,11 +4,11 @@ lalrpop_mod!(parser);
 
 use codespan_reporting::diagnostic::{Diagnostic as CodespanDiagnostic, Label};
 
-pub use parser::{SnippetParser, FileParser};
+pub use parser::{FileParser, SnippetParser};
 
 pub mod ast;
-pub mod token;
 pub mod lexer;
+pub mod token;
 
 pub type ParseError<'input> = LalrpopParseError<usize, lexer::LexTok<'input>, lexer::LexicalError>;
 pub type Diagnostic = CodespanDiagnostic<()>;

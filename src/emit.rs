@@ -14,6 +14,12 @@ pub enum Token {
     Checksum(u8),
 }
 
+impl<'a, 'input: 'a> From<&'a TokField<'input>> for Token {
+    fn from(field: &'a TokField<'input>) -> Self {
+        Self::Field(field.into())
+    }
+}
+
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use Token::*;
@@ -94,7 +100,7 @@ macro_rules! command {
     ($commandName: ident {
         $($arg: ident : $value: expr,)*
     }) => {
-        paste::expr! ([<$commandName:snake:lower>]( 
+        paste::expr! ([<$commandName:snake:lower>](
             vec![$(
                 Field {
                     letters: stringify!([<$arg:upper>]).to_string(),
