@@ -1,8 +1,10 @@
 [package]
-name = "gcode-lalrpop"
-version = "0.1.0"
+name = "g-code"
+version = "0.0.1"
 authors = ["Sameer Puri <sameer@users.noreply.github.com>"]
 edition = "2018"
+keywords = ["gcode", "g-code", "plotter", "cnc", "cutter", "engraver"]
+categories = ["parsing", ]
 
 [build-dependencies]
 lalrpop = { version = "0.19", features = [ ], default-features = false }
@@ -10,8 +12,10 @@ lalrpop = { version = "0.19", features = [ ], default-features = false }
 [dependencies]
 lalrpop-util = { version = "0.19", features =  [ ], default-features = false }
 num-rational = { version = "0.3", default-features = false }
+num = { version = "0.3", default-features = false }
 codespan = "0.11"
 codespan-reporting = "0.11"
+paste = "1"
 
 [dev-dependencies]
 pretty_assertions = "0.6"

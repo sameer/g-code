@@ -1,5 +1,6 @@
-use crate::ast;
-use crate::lexer;
+use crate::parse::ast;
+use crate::parse::lexer;
+use crate::parse::token;
 use lexer::LexicalError;
 use num_rational::Ratio;
 
@@ -24,16 +25,16 @@ extern {
     }
 }
 
-Checksum: ast::token::Checksum = <left:@L> <star:TokStar> <checksum:TokInteger> <right:@R> =>? Ok(ast::token::Checksum {
+Checksum: token::Checksum = <left:@L> <star:TokStar> <checksum:TokInteger> <right:@R> =>? Ok(token::Checksum {
     inner: checksum.parse::<u8>().map_err(|e| LexicalError::ParseIntError(e, left + 1, right))?,
     span: ast::Span(left, right)
 });
 
-Field: ast::token::Field<'input> = {
+Field: token::Field<'input> = {
     <left:@L> <letters:TokLetters> <value:TokInteger> <right:@R> =>? {
-        Ok(ast::token::Field {
+        Ok(token::Field {
             letters,
-            value: ast::token::Value::Integer(value.parse::<usize>().map_err(|e| LexicalError::ParseIntError(e, left + letters.len(), right))?),
+            value: token::Value::Integer(value.parse::<usize>().map_err(|e| LexicalError::ParseIntError(e, left + letters.len(), right))?),
             raw_value: vec![value],
             span: ast::Span(left, right)
         })
@@ -42,9 +43,9 @@ Field: ast::token::Field<'input> = {
     <left:@L> <letters:TokLetters> <neg:TokMinus> <value:TokInteger> <right:@R> =>? {
         let value_start = left + letters.len() + 1;
         let value_end = right;
-        Ok(ast::token::Field {
+        Ok(token::Field {
             letters,
-            value: ast::token::Value::Rational(-value.parse::<Ratio<i64>>().map_err(|e| LexicalError::ParseRatioError(e, value_start, value_end))?),
+            value: token::Value::Rational(-value.parse::<Ratio<i64>>().map_err(|e| LexicalError::ParseRatioError(e, value_start, value_end))?),
             raw_value: vec!["-", value],
             span: ast::Span(left, right)
         })
@@ -55,9 +56,9 @@ Field: ast::token::Field<'input> = {
         let lhs_end = lhs_start + lhs.len();
         let rhs_start = lhs_end + 1;
         let rhs_end = rhs_start + rhs.map(|x| x.len()).unwrap_or(0);
-        Ok(ast::token::Field {
+        Ok(token::Field {
             letters,
-            value: ast::token::Value::Rational(lhs.parse::<Ratio<i64>>()
+            value: token::Value::Rational(lhs.parse::<Ratio<i64>>()
                 .map_err(|e| LexicalError::ParseRatioError(e, lhs_start, lhs_end))
                 .and_then(|lhs| if let Some(rhs_str) = rhs {
                     rhs_str.parse::<i64>()
@@ -76,9 +77,9 @@ Field: ast::token::Field<'input> = {
     <left:@L> <letters:TokLetters> <neg:TokMinus?> <dot:TokDot> <rhs_str:TokInteger> <right:@R> =>? {
         let rhs_start = left + letters.len() + neg.as_ref().map(|_| 1).unwrap_or(0) + 1;
         let rhs_end = right;
-        Ok(ast::token::Field {
+        Ok(token::Field {
             letters,
-            value: ast::token::Value::Rational(rhs_str.parse::<i64>()
+            value: token::Value::Rational(rhs_str.parse::<i64>()
                 .map(|rhs| Ratio::new(rhs, 10i64.pow(rhs_str.len() as u32)))
                 .map(|rhs| if neg.is_some() { -rhs } else { rhs })
                 .map_err(|e| LexicalError::ParseIntError(e, rhs_start, rhs_end))?),
@@ -87,25 +88,25 @@ Field: ast::token::Field<'input> = {
         })
     },
 
-    <left:@L> <letters:TokLetters> <string:TokString> <right:@R> => ast::token::Field {
+    <left:@L> <letters:TokLetters> <string:TokString> <right:@R> => token::Field {
         letters,
-        value: ast::token::Value::String(string),
+        value: token::Value::String(string),
         raw_value: vec![string],
         span: ast::Span(left, right)
     }
 };
 
-Comment: ast::token::Comment<'input> = <left:@L> <comment:TokComment> => ast::token::Comment {
+Comment: token::Comment<'input> = <left:@L> <comment:TokComment> => token::Comment {
     inner: comment,
     pos: left,
 };
 
-InlineComment: ast::token::InlineComment<'input> = <left:@L> <comment:TokInlineComment> => ast::token::InlineComment {
+InlineComment: token::InlineComment<'input> = <left:@L> <comment:TokInlineComment> => token::InlineComment {
     inner: comment,
     pos: left,
 };
 
-Whitespace: ast::token::Whitespace<'input> = <left:@L> <whitespace:TokWhitespace> => ast::token::Whitespace {
+Whitespace: token::Whitespace<'input> = <left:@L> <whitespace:TokWhitespace> => token::Whitespace {
     inner: whitespace,
     pos: left,
 };
@@ -119,7 +120,7 @@ Line: ast::Line<'input> = <left:@L> <fields:(InlineComment* (Whitespace InlineCo
     span: ast::Span(left, right)
 };
 
-Newline: ast::token::Newline = <left:@L> TokNewline => ast::token::Newline { pos: left };
+Newline: token::Newline = <left:@L> TokNewline => token::Newline { pos: left };
 
 pub File: ast::File<'input> = {
     <left:@L> <lines:(Line Newline)*> <last_line:Line> <right:@R> => ast::File {

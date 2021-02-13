@@ -3,8 +3,8 @@ use codespan_reporting::term::{
     termcolor::{ColorChoice, StandardStream},
 };
 
-use gcode_lalrpop::lexer;
-use gcode_lalrpop::parser::FileParser;
+use g_code::parse::lexer;
+use g_code::parse::FileParser;
 
 fn main() {
     let filename = std::env::args().skip(1).next().expect("specify a filename");
@@ -13,8 +13,8 @@ fn main() {
 
     match FileParser::new().parse(&gcode, lexer::Lexer::new(&gcode)) {
         Ok(ast) => {
-            eprintln!("Success!");
             println!("{:#?}", ast);
+            eprintln!("Success!");
         }
         Err(err) => {
             let mut writer = StandardStream::stderr(ColorChoice::Auto);
@@ -23,7 +23,7 @@ fn main() {
                 &mut writer,
                 &config,
                 &codespan_reporting::files::SimpleFile::new(filename, &gcode),
-                &gcode_lalrpop::into_diagnostic(&err),
+                &g_code::parse::into_diagnostic(&err),
             )
             .unwrap();
         }

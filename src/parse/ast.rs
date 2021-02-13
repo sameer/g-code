@@ -1,5 +1,5 @@
+use super::token::*;
 use std::fmt::Debug;
-use token::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Hash, Eq)]
 /// A range of bytes in the raw text of the program.
@@ -8,6 +8,10 @@ use token::*;
 ///
 /// The end of the range is exclusive.
 pub struct Span(pub usize, pub usize);
+
+pub trait Spanned {
+    fn span(&self) -> Span;
+}
 
 impl std::ops::Add for Span {
     type Output = Self;
@@ -62,6 +66,12 @@ impl<'input> File<'input> {
     }
 }
 
+impl<'input> Spanned for File<'input> {
+    fn span(&self) -> Span {
+        self.span
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// A sequence of GCode that may be inserted into a file.
 ///
@@ -85,7 +95,7 @@ impl<'input> Snippet<'input> {
 
     /// Iterating by [`Line`] may be too verbose, so this method is offered as
     /// an alternative for directly examining each [`Field`].
-    pub fn iter_fields(&'input self) -> impl Iterator<Item = &'input Field<'input>> {
+    pub fn iter_fields<'a>(&'a self) -> impl Iterator<Item = &'a Field> {
         self.iter().map(|line| line.iter_fields()).flatten()
     }
 
@@ -95,37 +105,38 @@ impl<'input> Snippet<'input> {
     }
 }
 
-impl<'input> Spanned for File<'input> {
+impl<'input> Spanned for Snippet<'input> {
     fn span(&self) -> Span {
         self.span
     }
 }
 
+
+type PrecedingWhitespaceAndComments<'input> = Vec<(Whitespace<'input>, Vec<InlineComment<'input>>)>;
+type WrappedVec<'input, T> = Vec<(
+    Vec<InlineComment<'input>>,
+    PrecedingWhitespaceAndComments<'input>,
+    T,
+)>;
+type WrappedOpt<'input, T> = Option<(
+    Vec<InlineComment<'input>>,
+    PrecedingWhitespaceAndComments<'input>,
+    T,
+)>;
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// A sequence of GCode that is either followed by a [`Newline`] or at the end of a file.
 pub struct Line<'input> {
-    pub fields: Vec<(
-        Vec<InlineComment<'input>>,
-        Vec<(Whitespace<'input>, Vec<InlineComment<'input>>)>,
-        Field<'input>,
-    )>,
-    pub checksum: Option<(
-        Vec<InlineComment<'input>>,
-        Vec<(Whitespace<'input>, Vec<InlineComment<'input>>)>,
-        Checksum,
-    )>,
-    pub comment: Option<(
-        Vec<InlineComment<'input>>,
-        Vec<(Whitespace<'input>, Vec<InlineComment<'input>>)>,
-        Comment<'input>,
-    )>,
-    pub whitespace: Option<(
-        Vec<(Whitespace<'input>, Vec<InlineComment<'input>>)>,
+    pub(crate) fields: WrappedVec<'input, Field<'input>>,
+    pub(crate) checksum: WrappedOpt<'input, Checksum>,
+    pub(crate) comment: WrappedOpt<'input, Comment<'input>>,
+    pub(crate) whitespace: Option<(
+        PrecedingWhitespaceAndComments<'input>,
         Whitespace<'input>,
     )>,
-    pub inline_comment: Vec<InlineComment<'input>>,
-
-    pub span: Span,
+    pub(crate) inline_comment: Vec<InlineComment<'input>>,
+    pub(crate) span: Span,
 }
 
 impl<'input> Spanned for Line<'input> {
@@ -136,7 +147,7 @@ impl<'input> Spanned for Line<'input> {
 
 impl<'input> Line<'input> {
     /// Iterate by [`Field`] in a line of GCode.
-    pub fn iter_fields(&'input self) -> impl Iterator<Item = &'input Field> {
+    pub fn iter_fields<'a>(&'a self) -> impl Iterator<Item = &'a Field> {
         self.fields.iter().map(|(_, _, field)| field)
     }
 
@@ -259,148 +270,4 @@ impl<'input> Line<'input> {
     }
 }
 
-pub mod token {
-    use super::Span;
-    use num_rational::Ratio;
-    use std::cmp::PartialEq;
-
-    pub trait Spanned {
-        fn span(&self) -> Span;
-    }
-
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    /// ASCII letter(s) followed by a [`Value`]
-    pub struct Field<'input> {
-        pub(crate) letters: &'input str,
-        pub(crate) value: Value<'input>,
-        pub(crate) raw_value: Vec<&'input str>,
-        pub(crate) span: Span,
-    }
-
-    impl<'input> Field<'input> {
-        /// Iterate over the bytes of the raw text.
-        /// Used in [`Line.compute_checksum`].
-        pub fn iter_bytes(&'input self) -> impl Iterator<Item = &'input u8> {
-            self.letters
-                .as_bytes()
-                .iter()
-                .chain(self.raw_value.iter().map(|s| s.as_bytes().iter()).flatten())
-        }
-    }
-
-    impl<'input> Spanned for Field<'input> {
-        fn span(&self) -> Span {
-            self.span
-        }
-    }
-
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    pub enum Value<'input> {
-        /// A real number GCode value.
-        ///
-        /// While this is often a floating point number,
-        /// that was converted to a string,
-        /// it is parsed as a rational number to
-        /// ensure numerical stability.
-        Rational(Ratio<i64>),
-        /// An unsigned integer GCode value fitting in a [`usize`].
-        /// For instance, this would be the 0 in G0.
-        Integer(usize),
-        /// A string GCode value.
-        ///
-        /// The delimiting quotes are included in the value
-        /// and the escaped quotes are NOT unescaped.
-        String(&'input str),
-    }
-
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    pub struct Checksum {
-        pub(crate) inner: u8,
-        pub(crate) span: Span,
-    }
-
-    impl Spanned for Checksum {
-        fn span(&self) -> Span {
-            self.span
-        }
-    }
-
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    /// A `'\n'` token that delimits [`super::Line`]s in a [`super::File`].
-    pub struct Newline {
-        pub(crate) pos: usize,
-    }
-
-    impl Spanned for Newline {
-        fn span(&self) -> Span {
-            Span(self.pos, self.pos + 1)
-        }
-    }
-
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    /// Any sequence of ASCII whitespace except for [`Newline`].
-    pub struct Whitespace<'input> {
-        pub(crate) inner: &'input str,
-        pub(crate) pos: usize,
-    }
-
-    impl<'input> Whitespace<'input> {
-        pub fn iter_bytes(&'input self) -> impl Iterator<Item = &'input u8> {
-            self.inner.as_bytes().iter()
-        }
-    }
-
-    impl<'input> Spanned for Whitespace<'input> {
-        fn span(&self) -> Span {
-            Span(self.pos, self.pos + self.inner.len())
-        }
-    }
-
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    /// A semicolon `;` followed by ASCII characters and terminated by a [`Newline`]
-    /// or the end of the file.
-    ///
-    /// The semicolon is part of the inner representation.
-    ///
-    /// Some machines/programs will display these comments
-    /// as the GCode is executed.
-    pub struct Comment<'input> {
-        pub(crate) inner: &'input str,
-        pub(crate) pos: usize,
-    }
-
-    impl<'input> Comment<'input> {
-        pub fn iter_bytes(&'input self) -> impl Iterator<Item = &'input u8> {
-            self.inner.as_bytes().iter()
-        }
-    }
-
-    impl<'input> Spanned for Comment<'input> {
-        fn span(&self) -> Span {
-            Span(self.pos, self.pos + self.inner.len())
-        }
-    }
-
-    /// An opening parenthesis `(` followed by ASCII characters and terminated
-    /// by a closing parenthesis `)`.
-    /// A [`Newline`] is not allowed in an inline comment.
-    ///
-    /// The parentheses are part of the inner representation.
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    pub struct InlineComment<'input> {
-        pub(crate) inner: &'input str,
-        pub(crate) pos: usize,
-    }
-
-    impl<'input> InlineComment<'input> {
-        pub fn iter_bytes(&'input self) -> impl Iterator<Item = &'input u8> {
-            self.inner.as_bytes().iter()
-        }
-    }
-
-    impl<'input> Spanned for InlineComment<'input> {
-        fn span(&self) -> Span {
-            Span(self.pos, self.pos + self.inner.len())
-        }
-    }
-}
+pub mod token {}

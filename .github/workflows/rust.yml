@@ -1,4 +1,4 @@
-name: gcode-lalrpop
+name: g-code
 
 on: [push, pull_request]
 
