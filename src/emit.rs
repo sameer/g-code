@@ -139,7 +139,7 @@ macro_rules! impl_commands {
                     Command {
                         name: [<$commandName:snake:upper _FIELD>].clone(),
                         args: args.filter(|arg| {
-                            match arg.letters.to_lowercase().as_str() {
+                            match arg.letters.to_ascii_uppercase().as_str() {
                                 $(stringify!($arg) => true,)*
                                 _ => false
                             }
@@ -166,14 +166,20 @@ macro_rules! impl_commands {
 
         impl Command {
             pub fn push(&mut self, arg: Field) {
-                match self.name.letters.as_str() {
-                    $(stringify!($letters) => match arg.letters.to_lowercase().as_str() {
-                        $(stringify!($arg) => {
+                match &self.name {
+                    $(x if *x == paste!{[<$commandName:snake:upper _FIELD>]}.clone() => {
+                        if match arg.letters.to_ascii_uppercase().as_str() {
+                            $(stringify!($arg) => {true},)*
+                            _ => false,
+                        } {
                             self.args.push(arg);
-                        })*
-                        _ => {}
+                        } else {
+                        }
                     },)*
-                    _ => {}
+                    _ => {
+                        dbg!(&self.name);
+                        dbg!(&arg);
+                    }
                 }
             }
 
@@ -217,40 +223,40 @@ impl_commands!(
     /// Some older machines may "dog leg" rapid positioning, moving one axis at a time
     RapidPositioning {
         "G", 0, {
-            x,
-            y,
-            z,
-            e,
-            f,
-            h,
-            r,
-            s,
-            a,
-            b,
-            c
+            X,
+            Y,
+            Z,
+            E,
+            F,
+            H,
+            R,
+            S,
+            A,
+            B,
+            C
         }
     },
     /// Typically used for "cutting" motion
     LinearInterpolation {
         "G", 1, {
-            x,
-            y,
-            z,
-            e,
-            f,
-            h,
-            r,
-            s,
-            a,
-            b,
-            c
+            X,
+            Y,
+            Z,
+            E,
+            F,
+            H,
+            R,
+            S,
+            A,
+            B,
+            C
         }
     },
     /// This will keep the axes unmoving for the period of time in seconds specified by the P number
     Dwell {
         "G", 4, {
             /// Time in seconds
-            p
+            P
         }
     },
     /// Use inches for length units
@@ -276,14 +282,14 @@ impl_commands!(
     StartSpindleClockwise {
         "M", 3, {
             /// Speed
-            p
+            P
         }
     },
     /// Start spinning the spindle counterclockwise with speed `p`
     StartSpindleCounterclockwise {
         "M", 4, {
             /// Speed
-            p
+            P
         }
     },
     /// Stop spinning the spindle
