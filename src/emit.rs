@@ -1,6 +1,7 @@
 use num::ToPrimitive;
 use num_rational::Ratio;
 use paste::paste;
+use lazy_static::lazy_static;
 
 use std::fmt;
 
@@ -119,8 +120,7 @@ macro_rules! impl_commands {
                 $(#[$outer])*
                 pub fn [<$commandName:snake:lower>]<I: Iterator<Item = Field>>(args: I) -> Command {
                     Command {
-                        letters: $letters,
-                        value: Value::Integer($value),
+                        name: [<$commandName:snake:upper _FIELD>].clone(),
                         args: args.filter(|arg| {
                             match arg.letters.to_lowercase().as_str() {
                                 $(stringify!($arg) => true,)*
@@ -129,21 +129,27 @@ macro_rules! impl_commands {
                         }).collect(),
                     }
                 }
+
+                lazy_static! {
+                    pub static ref [<$commandName:snake:upper _FIELD>]: Field = Field {
+                        letters: $letters.to_string(),
+                        value:Value::Integer($value),
+                    };
+                }
             )*
         }
 
         /// Commands are the operational unit of GCode
-        /// They consist of identifying letter(s) and a value followed by field arguments
+        /// They consist of a G, M, or other top-level field followed by field arguments
         #[derive(Clone, PartialEq, Debug)]
         pub struct Command {
-            letters: &'static str,
-            value: Value,
+            name: Field,
             args: Vec<Field>,
         }
 
         impl Command {
             pub fn push(&mut self, arg: Field) {
-                match self.letters {
+                match self.name.letters.as_str() {
                     $(stringify!($letters) => match arg.letters.to_lowercase().as_str() {
                         $(stringify!($arg) => {
                             self.args.push(arg);
@@ -154,8 +160,12 @@ macro_rules! impl_commands {
                 }
             }
 
+            pub fn iter(&self) -> impl Iterator<Item = &Field> {
+                std::iter::once(&self.name).chain(self.args.iter())
+            }
+
             pub fn iter_args(&self) -> impl Iterator<Item = &Field> {
-                self.args.iter()
+                self.iter().skip(1)
             }
 
             pub fn iter_mut_args(&mut self) -> impl Iterator<Item = &mut Field> {
@@ -175,15 +185,6 @@ macro_rules! impl_commands {
                         break;
                     }
                 }
-            }
-        }
-
-        impl Into<Vec<Token>> for Command {
-            fn into(mut self) -> Vec<Token> {
-                std::iter::once(Field {
-                    letters: self.letters.to_string(),
-                    value: self.value
-                }).chain(self.args.drain(..)).map(|arg| arg.into()).collect()
             }
         }
     };
