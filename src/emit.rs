@@ -112,14 +112,20 @@ macro_rules! command {
     ($commandName: ident {
         $($arg: ident : $value: expr,)*
     }) => {
-        paste::expr! ([<$commandName:snake:lower>](
-            vec![$(
-                Field {
-                    letters: stringify!([<$arg:upper>]).to_string(),
-                    value: Value::Float($value),
-                }
-            ,)*].drain(..)
-        ))
+        {
+            use g_code::emit::*;
+            use paste::paste;
+            paste::expr!{
+                [<$commandName:snake:lower>](
+                    vec![$(
+                        Field {
+                            letters: stringify!([<$arg:upper>]).to_string(),
+                            value: Value::Float($value),
+                        }
+                    ,)*].drain(..)
+                )
+            }
+        }
     };
 }
 
