@@ -1,10 +1,20 @@
 [package]
 name = "g-code"
 version = "0.0.1"
-authors = ["Sameer Puri <sameer@users.noreply.github.com>"]
+authors = ["Sameer Puri <sameer@purisa.me>"]
 edition = "2018"
-keywords = ["gcode", "g-code", "plotter", "cnc", "cutter", "engraver"]
-categories = ["parsing", ]
+keywords = ["gcode", "g-code", "plotter", "cnc"]
+categories = ["parsing"]
+repository = "https://github.com/sameer/g-code"
+documentation = "https://docs.rs/g-code"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+description = "GCode parsing and emission"
+
+[badges]
+is-it-maintained-issue-resolution = { repository = "sameer/g-code" }
+is-it-maintained-open-issues = { repository = "sameer/g-code" }
+maintenance = { status = "passively-maintained" }
 
 [build-dependencies]
 lalrpop = { version = "0.19", features = [ ], default-features = false }
