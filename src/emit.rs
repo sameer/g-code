@@ -1,7 +1,7 @@
+use lazy_static::lazy_static;
 use num::ToPrimitive;
 use num_rational::Ratio;
 use paste::paste;
-use lazy_static::lazy_static;
 
 use std::fmt;
 
@@ -71,6 +71,17 @@ pub enum Value {
     Float(f64),
     Integer(usize),
     String(String),
+}
+
+impl Value {
+    pub fn as_f64(&self) -> Option<f64> {
+        match self {
+            Self::Rational(r) => r.to_f64(),
+            Self::Integer(i) => Some(*i as f64),
+            Self::Float(f) => Some(*f),
+            Self::String(_) => None,
+        }
+    }
 }
 
 impl<'a, 'input: 'a> From<&'a TokValue<'input>> for Value {
