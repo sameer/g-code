@@ -181,6 +181,10 @@ macro_rules! impl_commands {
                 std::iter::once(&self.name).chain(self.args.iter())
             }
 
+            pub fn as_token_vec(mut self) -> Vec<Token> {
+                std::iter::once(self.name).chain(self.args.drain(..)).map(|f| f.into()).collect()
+            }
+
             pub fn iter_args(&self) -> impl Iterator<Item = &Field> {
                 self.iter().skip(1)
             }
