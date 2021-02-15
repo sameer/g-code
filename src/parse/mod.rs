@@ -123,8 +123,9 @@ pub fn into_diagnostic<'a: 'input, 'input>(err: &'a ParseError<'input>) -> Diagn
 #[cfg(test)]
 mod tests {
     use super::parser::FileParser;
-    use crate::ast::{token::*, Line, Span};
-    use crate::lexer::{LexTok, Lexer, LexerState, LexicalError};
+    use crate::parse::ast::{Line, Span};
+    use crate::parse::lexer::{LexTok, Lexer, LexerState, LexicalError};
+    use crate::parse::token::*;
     use pretty_assertions::assert_eq;
 
     mod parser {
@@ -132,13 +133,13 @@ mod tests {
 
         #[test]
         fn parses_svg2gcode_output() {
-            let gcode = include_str!("../tests/vandy_commodores_logo.gcode");
+            let gcode = include_str!("../../tests/vandy_commodores_logo.gcode");
             FileParser::new().parse(gcode, Lexer::new(gcode)).unwrap();
         }
 
         #[test]
         fn parses_ncviewer_sample() {
-            let gcode = include_str!("../tests/ncviewer_sample.gcode");
+            let gcode = include_str!("../../tests/ncviewer_sample.gcode");
             FileParser::new().parse(gcode, Lexer::new(gcode)).unwrap();
         }
 
