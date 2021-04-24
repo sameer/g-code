@@ -3,15 +3,14 @@ use codespan_reporting::term::{
     termcolor::{ColorChoice, StandardStream},
 };
 
-use g_code::parse::lexer;
-use g_code::parse::FileParser;
+use g_code::parse::file_parser;
 
 fn main() {
     let filename = std::env::args().skip(1).next().expect("specify a filename");
 
     let gcode: String = std::fs::read_to_string(&filename).expect("file isn't readable");
 
-    match FileParser::new().parse(&gcode, lexer::Lexer::new(&gcode)) {
+    match file_parser(&gcode) {
         Ok(ast) => {
             println!("{:#?}", ast);
             eprintln!("Success!");

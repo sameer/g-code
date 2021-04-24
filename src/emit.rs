@@ -57,9 +57,9 @@ impl<'a, 'input: 'a> From<&'a TokField<'input>> for Field {
     }
 }
 
-impl Into<Token> for Field {
-    fn into(self) -> Token {
-        Token::Field(self)
+impl From<Field> for Token {
+    fn from(field: Field) -> Token {
+        Token::Field(field)
     }
 }
 
@@ -187,7 +187,7 @@ macro_rules! impl_commands {
                 std::iter::once(&self.name).chain(self.args.iter())
             }
 
-            pub fn as_token_vec(mut self) -> Vec<Token> {
+            pub fn into_token_vec(mut self) -> Vec<Token> {
                 std::iter::once(self.name).chain(self.args.drain(..)).map(|f| f.into()).collect()
             }
 
