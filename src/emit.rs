@@ -18,8 +18,8 @@ pub enum Token<'a> {
     Checksum(u8),
 }
 
-impl<'a, 'input: 'a> From<&'a ParsedField<'input>> for Token<'a> {
-    fn from(field: &'a ParsedField<'input>) -> Self {
+impl<'input> From<&ParsedField<'input>> for Token<'input> {
+    fn from(field: &ParsedField<'input>) -> Self {
         Self::Field(field.into())
     }
 }
@@ -51,8 +51,8 @@ impl<'a> fmt::Display for Field<'a> {
     }
 }
 
-impl<'a, 'input: 'a> From<&'a ParsedField<'input>> for Field<'a> {
-    fn from(field: &'a ParsedField<'input>) -> Self {
+impl<'input> From<&ParsedField<'input>> for Field<'input> {
+    fn from(field: &ParsedField<'input>) -> Self {
         Self {
             letters: field.letters.into(),
             value: Value::from(&field.value),
@@ -87,8 +87,8 @@ impl Value<'_> {
     }
 }
 
-impl<'a, 'input: 'a> From<&'a ParsedValue<'input>> for Value<'a> {
-    fn from(val: &'a ParsedValue<'input>) -> Self {
+impl<'input> From<&ParsedValue<'input>> for Value<'input> {
+    fn from(val: &ParsedValue<'input>) -> Self {
         use ParsedValue::*;
         match val {
             Rational(r) => Self::Rational(*r),
