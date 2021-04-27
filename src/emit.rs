@@ -119,7 +119,7 @@ macro_rules! command {
                 [<$commandName:snake:lower>](
                     vec![$(
                         Field {
-                            letters: stringify!([<$arg:upper>]).to_string(),
+                            letters: Cow::Borrowed(stringify!([<$arg:upper>])),
                             value: Value::Float($value),
                         }
                     ,)*].drain(..)
