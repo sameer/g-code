@@ -1,27 +1,27 @@
-use lazy_static::lazy_static;
 use num::ToPrimitive;
 use num_rational::Ratio;
 use paste::paste;
 
+use std::borrow::Cow;
 use std::fmt;
 
-use crate::parse::token::Field as TokField;
-use crate::parse::token::Value as TokValue;
+use crate::parse::token::Field as ParsedField;
+use crate::parse::token::Value as ParsedValue;
 
 #[derive(Clone, PartialEq, Debug)]
-pub enum Token {
-    Field(Field),
+pub enum Token<'a> {
+    Field(Field<'a>),
     Comment { is_inline: bool, inner: String },
     Checksum(u8),
 }
 
-impl<'a, 'input: 'a> From<&'a TokField<'input>> for Token {
-    fn from(field: &'a TokField<'input>) -> Self {
+impl<'a, 'input: 'a> From<&'a ParsedField<'input>> for Token<'a> {
+    fn from(field: &'a ParsedField<'input>) -> Self {
         Self::Field(field.into())
     }
 }
 
-impl fmt::Display for Token {
+impl fmt::Display for Token<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use Token::*;
         match self {
@@ -37,28 +37,28 @@ impl fmt::Display for Token {
 
 /// Fundamental unit of GCode: a value preceded by a descriptive letter.
 #[derive(Clone, PartialEq, Debug)]
-pub struct Field {
-    pub letters: String,
+pub struct Field<'a> {
+    pub letters: Cow<'a, str>,
     pub value: Value,
 }
 
-impl fmt::Display for Field {
+impl<'a> fmt::Display for Field<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}{}", self.letters, self.value)
     }
 }
 
-impl<'a, 'input: 'a> From<&'a TokField<'input>> for Field {
-    fn from(field: &'a TokField<'input>) -> Self {
+impl<'a, 'input: 'a> From<&'a ParsedField<'input>> for Field<'a> {
+    fn from(field: &'a ParsedField<'input>) -> Self {
         Self {
-            letters: field.letters.to_string(),
+            letters: field.letters.into(),
             value: Value::from(&field.value),
         }
     }
 }
 
-impl From<Field> for Token {
-    fn from(field: Field) -> Token {
+impl<'a> From<Field<'a>> for Token<'a> {
+    fn from(field: Field<'a>) -> Token<'a> {
         Token::Field(field)
     }
 }
@@ -84,9 +84,9 @@ impl Value {
     }
 }
 
-impl<'a, 'input: 'a> From<&'a TokValue<'input>> for Value {
-    fn from(val: &'a TokValue<'input>) -> Self {
-        use TokValue::*;
+impl<'a, 'input: 'a> From<&'a ParsedValue<'input>> for Value {
+    fn from(val: &'a ParsedValue<'input>) -> Self {
+        use ParsedValue::*;
         match val {
             Rational(r) => Self::Rational(*r),
             Integer(i) => Self::Integer(*i),
@@ -135,7 +135,7 @@ macro_rules! impl_commands {
         paste! {
             $(
                 $(#[$outer])*
-                pub fn [<$commandName:snake:lower>]<I: Iterator<Item = Field>>(args: I) -> Command {
+                pub fn [<$commandName:snake:lower>]<'a, I: Iterator<Item = Field<'a>>>(args: I) -> Command<'a> {
                     Command {
                         name: [<$commandName:snake:upper _FIELD>].clone(),
                         args: args.filter(|arg| {
@@ -146,26 +146,23 @@ macro_rules! impl_commands {
                         }).collect(),
                     }
                 }
-
-                lazy_static! {
-                    pub static ref [<$commandName:snake:upper _FIELD>]: Field = Field {
-                        letters: $letters.to_string(),
-                        value:Value::Integer($value),
-                    };
-                }
+                pub const [<$commandName:snake:upper _FIELD>]: Field = Field {
+                    letters: Cow::Borrowed($letters),
+                    value: Value::Integer($value),
+                };
             )*
         }
 
         /// Commands are the operational unit of GCode
         /// They consist of a G, M, or other top-level field followed by field arguments
         #[derive(Clone, PartialEq, Debug)]
-        pub struct Command {
-            name: Field,
-            args: Vec<Field>,
+        pub struct Command<'a> {
+            name: Field<'a>,
+            args: Vec<Field<'a>>,
         }
 
-        impl Command {
-            pub fn push(&mut self, arg: Field) {
+        impl<'a> Command<'a> {
+            pub fn push(&mut self, arg: Field<'a>) {
                 match &self.name {
                     $(x if *x == paste!{[<$commandName:snake:upper _FIELD>]}.clone() => {
                         if match arg.letters.to_ascii_uppercase().as_str() {
@@ -187,7 +184,7 @@ macro_rules! impl_commands {
                 std::iter::once(&self.name).chain(self.args.iter())
             }
 
-            pub fn into_token_vec(mut self) -> Vec<Token> {
+            pub fn into_token_vec(mut self) -> Vec<Token<'a>> {
                 std::iter::once(self.name).chain(self.args.drain(..)).map(|f| f.into()).collect()
             }
 
@@ -195,7 +192,7 @@ macro_rules! impl_commands {
                 self.iter().skip(1)
             }
 
-            pub fn iter_mut_args(&mut self) -> impl Iterator<Item = &mut Field> {
+            pub fn iter_mut_args(&mut self) -> impl Iterator<Item = &mut Field<'a>> {
                 self.args.iter_mut()
             }
 
