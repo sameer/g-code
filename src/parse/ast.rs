@@ -48,7 +48,7 @@ pub struct File<'input> {
 impl<'input> File<'input> {
     /// Iterate by [Line].
     /// The last [Line] may or may not be followed by a [Newline].
-    pub fn iter(&'input self) -> impl Iterator<Item = &'input Line<'input>> {
+    pub fn iter(&self) -> impl Iterator<Item = &Line<'input>> {
         self.lines
             .iter()
             .map(|(line, _)| line)
@@ -57,12 +57,12 @@ impl<'input> File<'input> {
 
     /// Iterating by [Line] may be too verbose, so this method is offered as
     /// an alternative for directly examining each [`Field`].
-    pub fn iter_fields(&'input self) -> impl Iterator<Item = &'input Field<'input>> {
+    pub fn iter_fields(&self) -> impl Iterator<Item = &Field<'input>> {
         self.iter().map(|line| line.iter_fields()).flatten()
     }
 
     /// Iterate by [u8] in the file.
-    pub fn iter_bytes(&'input self) -> impl Iterator<Item = &'input u8> {
+    pub fn iter_bytes(&self) -> impl Iterator<Item = &u8> {
         self.iter().map(|line| line.iter_bytes()).flatten()
     }
 }
@@ -87,7 +87,7 @@ pub struct Snippet<'input> {
 impl<'input> Snippet<'input> {
     /// Iterate by [Line].
     /// The last [Line] may or may not be followed by a [Newline].
-    pub fn iter(&'input self) -> impl Iterator<Item = &'input Line<'input>> {
+    pub fn iter(&self) -> impl Iterator<Item = &Line<'input>> {
         self.lines
             .iter()
             .map(|(line, _)| line)
@@ -96,12 +96,12 @@ impl<'input> Snippet<'input> {
 
     /// Iterating by [Line] may be too verbose, so this method is offered as
     /// an alternative for directly examining each [Field].
-    pub fn iter_fields<'a>(&'a self) -> impl Iterator<Item = &'a Field> {
+    pub fn iter_fields(&self) -> impl Iterator<Item = &Field<'input>> {
         self.iter().map(|line| line.iter_fields()).flatten()
     }
 
     /// Iterate by [u8] in the snippet.
-    pub fn iter_bytes(&'input self) -> impl Iterator<Item = &'input u8> {
+    pub fn iter_bytes(&self) -> impl Iterator<Item = &u8> {
         self.iter().map(|line| line.iter_bytes()).flatten()
     }
 }
@@ -128,7 +128,7 @@ impl<'input> Spanned for Line<'input> {
 
 impl<'input> Line<'input> {
     /// Iterate by [Field] in a line of GCode.
-    pub fn iter_fields<'a>(&'a self) -> impl Iterator<Item = &'a Field> {
+    pub fn iter_fields(&self) -> impl Iterator<Item = &Field<'input>> {
         self.line_components.iter().filter_map(|c| c.field.as_ref())
     }
 
@@ -137,7 +137,7 @@ impl<'input> Line<'input> {
     ///
     /// If the line does have a checksum, this will return an empty [Result::Ok]
     /// or an [Result::Err] containing the computed checksum that differs from the actual.
-    pub fn validate_checksum(&'input self) -> Option<Result<(), u8>> {
+    pub fn validate_checksum(&self) -> Option<Result<(), u8>> {
         if let Some(Checksum {
             inner: checksum, ..
         }) = self.checksum.as_ref()
@@ -153,7 +153,7 @@ impl<'input> Line<'input> {
     }
 
     /// Iterate over [u8] in a [Line].
-    pub fn iter_bytes(&'input self) -> impl Iterator<Item = &'input u8> {
+    pub fn iter_bytes(&self) -> impl Iterator<Item = &u8> {
         self.line_components
             .iter()
             .map(|c| c.iter_bytes())
@@ -161,7 +161,7 @@ impl<'input> Line<'input> {
     }
 
     /// XORs bytes in a [Line] leading up to the asterisk of a [`Checksum`].
-    pub fn compute_checksum(&'input self) -> u8 {
+    pub fn compute_checksum(&self) -> u8 {
         let take = if let Some(checksum) = &self.checksum {
             checksum.span.0
         } else if let Some(comment) = &self.comment {
