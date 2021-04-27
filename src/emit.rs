@@ -11,7 +11,10 @@ use crate::parse::token::Value as ParsedValue;
 #[derive(Clone, PartialEq, Debug)]
 pub enum Token<'a> {
     Field(Field<'a>),
-    Comment { is_inline: bool, inner: String },
+    Comment {
+        is_inline: bool,
+        inner: Cow<'a, str>,
+    },
     Checksum(u8),
 }
 
@@ -39,7 +42,7 @@ impl fmt::Display for Token<'_> {
 #[derive(Clone, PartialEq, Debug)]
 pub struct Field<'a> {
     pub letters: Cow<'a, str>,
-    pub value: Value,
+    pub value: Value<'a>,
 }
 
 impl<'a> fmt::Display for Field<'a> {
@@ -66,14 +69,14 @@ impl<'a> From<Field<'a>> for Token<'a> {
 /// All the possible variations of a field's value.
 /// Some flavors of GCode also allow for strings.
 #[derive(Clone, PartialEq, Debug)]
-pub enum Value {
+pub enum Value<'a> {
     Rational(Ratio<i64>),
     Float(f64),
     Integer(usize),
-    String(String),
+    String(Cow<'a, str>),
 }
 
-impl Value {
+impl Value<'_> {
     pub fn as_f64(&self) -> Option<f64> {
         match self {
             Self::Rational(r) => r.to_f64(),
@@ -84,18 +87,18 @@ impl Value {
     }
 }
 
-impl<'a, 'input: 'a> From<&'a ParsedValue<'input>> for Value {
+impl<'a, 'input: 'a> From<&'a ParsedValue<'input>> for Value<'a> {
     fn from(val: &'a ParsedValue<'input>) -> Self {
         use ParsedValue::*;
         match val {
             Rational(r) => Self::Rational(*r),
             Integer(i) => Self::Integer(*i),
-            String(s) => Self::String(s.to_string()),
+            String(s) => Self::String(Cow::Borrowed(s)),
         }
     }
 }
 
-impl fmt::Display for Value {
+impl fmt::Display for Value<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Rational(r) => write!(f, "{}", r.to_f64().ok_or(fmt::Error)?),
@@ -146,7 +149,7 @@ macro_rules! impl_commands {
                         }).collect(),
                     }
                 }
-                pub const [<$commandName:snake:upper _FIELD>]: Field = Field {
+                pub const [<$commandName:snake:upper _FIELD>]: Field<'static> = Field {
                     letters: Cow::Borrowed($letters),
                     value: Value::Integer($value),
                 };
@@ -201,7 +204,7 @@ macro_rules! impl_commands {
                 self.iter_args().find(|arg| arg.letters == letters)
             }
 
-            pub fn set(&mut self, letters: &str, value: Value) {
+            pub fn set(&mut self, letters: &str, value: Value<'a>) {
                 let letters = letters.to_ascii_uppercase();
                 for i in 0..self.args.len() {
                     if self.args[i].letters == letters {
