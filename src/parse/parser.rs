@@ -8,21 +8,25 @@ peg::parser! {
                 pos
             }
         };
-        pub rule dot() -> &'input str = $(".");
-        pub rule star() -> &'input str = quiet!{ $("*") } / expected!("asterisk");
-        pub rule minus() -> &'input str = $("-");
-        pub rule percent() -> &'input str = $("%");
+        pub rule dot() -> &'input str = quiet! { $(".") } / expected!("decimal point");
+        pub rule star() -> &'input str = quiet!{ $("*") } / expected!("checksum asterisk");
+        pub rule minus() -> &'input str = quiet!{ $("-") } / expected!("minus sign");
+        pub rule percent() -> &'input str = quiet! { $("%") } / expected!("percent sign");
+        rule quotation_mark() -> &'input str = quiet! { $("\"") } / expected!("quotation mark");
         rule ascii_except_quote_or_newline() -> &'input str = quiet! { $(['\t'  | ' '..='!'| '#'..='~']*) } / expected!("ASCII character except quote or newline");
-        pub rule string() -> &'input str = $(['"'] ascii_except_quote_or_newline() ((r#""""#)+ ascii_except_quote_or_newline())* ['"']);
+        pub rule string() -> &'input str = $(quotation_mark() ascii_except_quote_or_newline() ((quotation_mark() quotation_mark())+ ascii_except_quote_or_newline())* quotation_mark());
         rule ascii_except_closing_parenthesis_or_newline() -> &'input str = quiet! { $(['\t' | ' '..='(' | '*'..='~']*) } / expected!("ASCII character except closing parenthesis or newline");
-        pub rule inline_comment() -> InlineComment<'input> = pos:position!() inner:(quiet!{ $("(" ascii_except_closing_parenthesis_or_newline() ")") } / expected!("inline comment")) {
+        rule opening_parenthesis() -> &'input str = quiet! { $("(") } / expected!("opening parenthesis");
+        rule closing_parenthesis() -> &'input str = quiet! { $(")") } / expected!("closing parenthesis");
+        pub rule inline_comment() -> InlineComment<'input> = pos:position!() inner:$(opening_parenthesis() ascii_except_closing_parenthesis_or_newline() closing_parenthesis()) {
             InlineComment {
                 inner,
                 pos,
             }
         };
         rule ascii_character_except_newline() -> &'input str = quiet!{ $(['\t' | ' '..='~']*) } / expected!("ASCII character");
-        pub rule comment() -> Comment<'input> = pos:position!() inner:(quiet! {$(";" ascii_character_except_newline()) } / expected!("comment")) {
+        rule semicolon() -> &'input str = quiet! { $(";") } / expected!("semicolon");
+        pub rule comment() -> Comment<'input> = pos:position!() inner:$(semicolon() ascii_character_except_newline()) {
             Comment {
                 inner,
                 pos,

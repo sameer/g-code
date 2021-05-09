@@ -11,19 +11,33 @@ pub type Diagnostic = CodespanDiagnostic<()>;
 /// Convenience function for converting a parsing error
 /// into a [codespan_reporting::diagnostic::Diagnostic] for displaying to a user.
 pub fn into_diagnostic(err: &ParseError) -> Diagnostic {
+    let expected_count = err.expected.tokens().count();
+    let label_msg = if expected_count == 0 {
+        "unclear cause".to_string()
+    } else if expected_count == 1 {
+        format!("expected {}", err.expected.tokens().next().unwrap())
+    } else {
+        let mut acc = "expected one of ".to_string();
+        for token in err.expected.tokens().take(expected_count - 1) {
+            acc += token;
+            acc += ", ";
+        }
+        acc += "or ";
+        acc += err.expected.tokens().last().unwrap();
+        acc
+    };
     Diagnostic::error()
-        .with_message(format!("could not parse GCode: {}", err.expected))
-        .with_labels({
-            vec![Label::primary(
-                (),
-                err.location.offset..err.location.offset + 1,
-            )]
-        })
+        .with_message("could not parse gcode")
+        .with_labels(vec![Label::primary(
+            (),
+            err.location.offset..err.location.offset,
+        )
+        .with_message(label_msg)])
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{file_parser};
+    use super::file_parser;
     use crate::parse::ast::{Line, Span};
     use crate::parse::token::*;
     use pretty_assertions::assert_eq;
