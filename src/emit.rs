@@ -298,6 +298,6 @@ impl_commands!(
     },
     /// Signals the end of a program
     ProgramEnd {
-        "M", 20, {}
+        "M", 2, {}
     },
 );
