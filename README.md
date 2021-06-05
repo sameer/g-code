@@ -6,10 +6,7 @@ A joint crate for GCode parsing and emission.
 
 ## Parsing
 
-The parser is written in Rust using the [LALRPOP](https://github.com/lalrpop/lalrpop/) parser generator.
-
-
-A [custom lexer](https://lalrpop.github.io/lalrpop/lexer_tutorial/002_writing_custom_lexer.html) is used as LALRPOP currently does not handle whitespace well. This would prevent proper checksum computation.
+The parser is written in Rust using [peg](https://github.com/kevinmehall/rust-peg).
 
 ### Demo
 
