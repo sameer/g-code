@@ -2,7 +2,8 @@ peg::parser! {
     pub grammar g_code() for str{
         use super::super::token::*;
         use super::super::ast::*;
-        use num_rational::Ratio;
+        use rust_decimal::Decimal;
+
         pub rule newline() -> Newline = pos:position!() inner:(quiet!{ $("\r\n" / "\r" / "\n") } / expected!("newline")) {
             Newline {
                 pos
@@ -56,18 +57,18 @@ peg::parser! {
                 let rhs_end = rhs_start + rhs.map(|x| x.len()).unwrap_or(0);
                 Ok(Field {
                     letters,
-                    value: Value::Rational(lhs.parse::<Ratio<i64>>()
+                    value: Value::Rational(lhs.parse::<Decimal>()
                         .map_err(|e| "integer part does not fit in an i64")
                         .and_then(|lhs| if let Some(rhs_str) = rhs {
                             rhs_str.parse::<i64>()
-                                .map(|rhs| Ratio::new(rhs, 10i64.pow(rhs_str.len() as u32)))
+                                .map(|rhs| Decimal::new(rhs, rhs_str.len() as u32))
                                 .map(|rhs| lhs + rhs)
                                 .map(|value| if neg.is_some() { -value } else { value })
                                 .map_err(|e| "fractional part does not fit in an i64")
                         } else {
                             Ok(lhs)
                         })?),
-                    raw_value: if neg.is_some() { vec!["-", lhs, ".", rhs.unwrap_or("")] } else { vec![".", rhs.unwrap_or("")] },
+                    raw_value: if neg.is_some() { vec!["-", lhs, ".", rhs.unwrap_or("")] } else { vec![lhs, ".", rhs.unwrap_or("")] },
                     span: Span(left, right)
                 })
             }
@@ -77,7 +78,7 @@ peg::parser! {
                 Ok(Field {
                     letters,
                     value: Value::Rational(rhs_str.parse::<i64>()
-                        .map(|rhs| Ratio::new(rhs, 10i64.pow(rhs_str.len() as u32)))
+                        .map(|rhs| Decimal::new(rhs, rhs_str.len() as u32))
                         .map(|rhs| if neg.is_some() { -rhs } else { rhs })
                         .map_err(|e| "fractional part does not fit in an i64")?),
                     raw_value: if neg.is_some() { vec!["-", ".", rhs_str] } else { vec![".", rhs_str] },
@@ -98,7 +99,7 @@ peg::parser! {
                 let value_end = right;
                 Ok(Field {
                     letters,
-                    value: Value::Rational(-value.parse::<Ratio<i64>>().map_err(|e| "integer does not fit in i64")?),
+                    value: Value::Rational(-value.parse::<Decimal>().map_err(|e| "integer does not fit in i64")?),
                     raw_value: vec!["-", value],
                     span: Span(left, right)
                 })

@@ -132,11 +132,12 @@ impl<'input> Line<'input> {
         self.line_components.iter().filter_map(|c| c.field.as_ref())
     }
 
-    /// Validates [Line::checksum] against the fields that the line contains.
-    /// If the line has no checksum, this will return [`Option::None`].
+    /// Validate the line's checksum, if any, against its fields.
     ///
-    /// If the line does have a checksum, this will return an empty [Result::Ok]
-    /// or an [Result::Err] containing the computed checksum that differs from the actual.
+    /// Returns [None] if there is no checksum.
+    ///
+    /// If the line does have a checksum, this will return an empty [Ok]
+    /// or an [Err] containing the computed checksum that differs from the actual.
     pub fn validate_checksum(&self) -> Option<Result<(), u8>> {
         if let Some(Checksum {
             inner: checksum, ..

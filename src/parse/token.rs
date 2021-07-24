@@ -1,5 +1,5 @@
 use super::ast::{Span, Spanned};
-use num_rational::Ratio;
+use rust_decimal::Decimal;
 use std::cmp::PartialEq;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -33,9 +33,9 @@ pub enum Value<'input> {
     ///
     /// While this is often an [f64] or [f32],
     /// that was converted to a string,
-    /// it is parsed as a [Ratio<i64>] to
+    /// it is parsed as a [Decimal] to
     /// ensure numerical stability.
-    Rational(Ratio<i64>),
+    Rational(Decimal),
     /// An unsigned integer GCode value fitting in a [usize].
     /// For instance, this would be the 0 in G0.
     Integer(usize),

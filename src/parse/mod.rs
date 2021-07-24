@@ -1,3 +1,4 @@
+#[cfg(feature = "codespan_helpers")]
 use codespan_reporting::diagnostic::{Diagnostic as CodespanDiagnostic, Label};
 
 mod parser;
@@ -6,10 +7,12 @@ pub mod ast;
 pub mod token;
 
 pub type ParseError = peg::error::ParseError<peg::str::LineCol>;
+#[cfg(feature = "codespan_helpers")]
 pub type Diagnostic = CodespanDiagnostic<()>;
 
 /// Convenience function for converting a parsing error
 /// into a [codespan_reporting::diagnostic::Diagnostic] for displaying to a user.
+#[cfg(feature = "codespan_helpers")]
 pub fn into_diagnostic(err: &ParseError) -> Diagnostic {
     let expected_count = err.expected.tokens().count();
     let label_msg = if expected_count == 0 {
