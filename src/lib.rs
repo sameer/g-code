@@ -17,6 +17,7 @@ mod test {
         let config = codespan_reporting::term::Config::default();
 
         for str in [
+            include_str!("../tests/square.gcode"),
             include_str!("../tests/string_field.gcode"),
             include_str!("../tests/zero_dot.gcode"),
             include_str!("../tests/vandy_commodores_logo.gcode"),
