@@ -226,22 +226,24 @@ macro_rules! impl_commands {
             /// Add a field to the command.
             ///
             /// Returns [Err] if the Field's letters aren't recognized.
-            pub fn push(&mut self, arg: Field<'a>) -> Result<(), ()> {
-                match &self.name {
-                    $(x if *x == paste!{[<$commandName:snake:upper _FIELD>]} => {
-                        if match arg.letters.as_ref() {
-                            $(stringify!([<$arg:upper>]) => {true},)*
-                            $(stringify!([<$arg:lower>]) => {true},)*
-                            _ => false,
-                        } {
-                            self.args.push(arg);
-                            Ok(())
-                        } else {
-                            Err(())
+            pub fn push(&mut self, arg: Field<'a>) -> Result<(), &'static str> {
+                paste!{
+                    match &self.name {
+                        $(x if *x == [<$commandName:snake:upper _FIELD>] => {
+                            if match arg.letters.as_ref() {
+                                $(stringify!([<$arg:upper>]) => {true},)*
+                                $(stringify!([<$arg:lower>]) => {true},)*
+                                _ => false,
+                            } {
+                                self.args.push(arg);
+                                Ok(())
+                            } else {
+                                Err(concat!($(stringify!([<$arg:lower>]), " ", stringify!([<$arg:upper>]), " ", )*))
+                            }
+                        },)*
+                        _ => {
+                            unreachable!("a command's name cannot change");
                         }
-                    },)*
-                    _ => {
-                        unreachable!("a command's name cannot change");
                     }
                 }
             }

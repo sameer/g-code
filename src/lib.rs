@@ -50,7 +50,11 @@ mod test {
                         )
                         .unwrap();
                     }
-                    assert_eq!(expected.raw_value, actual.raw_value, "{:?} vs {:?}", expected, actual);
+                    assert_eq!(
+                        expected.raw_value, actual.raw_value,
+                        "{:?} vs {:?}",
+                        expected, actual
+                    );
                 })
         }
     }
