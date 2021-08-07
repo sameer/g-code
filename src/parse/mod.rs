@@ -258,7 +258,7 @@ N2 M107*39"#;
         #[test]
         fn percent_is_lexed() {
             let gcode = "%";
-            assert_eq!(percent(gcode), Ok(gcode),)
+            assert_eq!(percent(gcode), Ok(Percent { pos: 0 }),)
         }
 
         #[test]

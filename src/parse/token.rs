@@ -62,7 +62,7 @@ impl Spanned for Checksum {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-/// A `'\n'` token that delimits instances of [super::ast::Line] in a [super::ast::File].
+/// A `\n` or `\r\n` token that delimits instances of [super::ast::Line] in a [super::ast::File].
 pub struct Newline {
     pub(crate) pos: usize,
 }
@@ -72,6 +72,19 @@ impl Spanned for Newline {
         Span(self.pos, self.pos + 1)
     }
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+/// A `%` token that wraps a g-code [super::ast::File].
+pub struct Percent {
+    pub(crate) pos: usize,
+}
+
+impl Spanned for Percent {
+    fn span(&self) -> Span {
+        Span(self.pos, self.pos + 1)
+    }
+}
+
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Any sequence of ASCII whitespace except for [Newline].

@@ -12,7 +12,11 @@ peg::parser! {
         pub rule dot() -> &'input str = quiet! { $(".") } / expected!("decimal point");
         pub rule star() -> &'input str = quiet!{ $("*") } / expected!("checksum asterisk");
         pub rule minus() -> &'input str = quiet!{ $("-") } / expected!("minus sign");
-        pub rule percent() -> &'input str = quiet! { $("%") } / expected!("percent sign");
+        pub rule percent() -> Percent = pos:position!()  inner:(quiet! { $("%") } / expected!("percent sign")) {
+            Percent {
+                pos,
+            }
+        };
         rule quotation_mark() -> &'input str = quiet! { $("\"") } / expected!("quotation mark");
         rule ascii_except_quote_or_newline() -> &'input str = quiet! { $(['\t'  | ' '..='!'| '#'..='~']*) } / expected!("ASCII character except quote or newline");
         pub rule string() -> &'input str = $(quotation_mark() ascii_except_quote_or_newline() ((quotation_mark() quotation_mark())+ ascii_except_quote_or_newline())* quotation_mark());
@@ -137,27 +141,25 @@ peg::parser! {
         pub rule file_parser() -> File<'input>
             = left:position!() start_percent:percent() lines:(a:line() b:newline() { (a, b) })* last_line:line() end_percent:percent() right:position!() {
                 File {
-                    start_percent: true,
+                    percents: vec![start_percent, end_percent],
                     lines,
                     last_line: if last_line.line_components.is_empty() && last_line.checksum.is_none() && last_line.comment.is_none() {
                         None
                     } else {
                         Some(last_line)
                     },
-                    end_percent: true,
                     span: Span(left, right)
                 }
             }
             / left:position!() lines:(a:line() b:newline() { (a, b) })* last_line:line() right:position!() {
                 File {
-                    start_percent: false,
+                    percents: vec![],
                     lines,
                     last_line: if last_line.line_components.is_empty() && last_line.checksum.is_none() && last_line.comment.is_none() {
                         None
                     } else {
                         Some(last_line)
                     },
-                    end_percent: false,
                     span: Span(left, right)
                 }
             };

@@ -5,8 +5,12 @@ use rust_decimal::Decimal;
 use std::borrow::Cow;
 use std::fmt;
 
-use crate::parse::token::Field as ParsedField;
-use crate::parse::token::Value as ParsedValue;
+use crate::parse::ast::Spanned;
+use crate::parse::token::{
+    Checksum as ParsedChecksum, Comment as ParsedComment, Field as ParsedField,
+    InlineComment as ParsedInlineComment, Newline as ParsedNewline, Percent as ParsedPercent,
+    Value as ParsedValue, Whitespace as ParsedWhitespace,
+};
 
 #[derive(Clone, PartialEq, Debug)]
 /// The output struct for gcode emission implementing [std::fmt::Display]
@@ -19,11 +23,67 @@ pub enum Token<'a> {
         inner: Cow<'a, str>,
     },
     Checksum(u8),
+    Whitespace(Cow<'a, str>),
+    Newline {
+        is_crlf: bool,
+    },
+    Percent,
 }
 
 impl<'input> From<&ParsedField<'input>> for Token<'input> {
     fn from(field: &ParsedField<'input>) -> Self {
         Self::Field(field.into())
+    }
+}
+
+impl<'a, 'input: 'a> From<&'a ParsedInlineComment<'input>> for Token<'a> {
+    fn from(comment: &'a ParsedInlineComment<'input>) -> Self {
+        Self::Comment {
+            is_inline: true,
+            inner: Cow::Borrowed(
+                comment
+                    .inner
+                    .strip_prefix("(")
+                    .unwrap()
+                    .strip_suffix(")")
+                    .unwrap(),
+            ),
+        }
+    }
+}
+
+impl<'input> From<&ParsedComment<'input>> for Token<'input> {
+    fn from(comment: &ParsedComment<'input>) -> Self {
+        Self::Comment {
+            is_inline: false,
+            inner: Cow::Borrowed(comment.inner.strip_prefix(";").unwrap()),
+        }
+    }
+}
+
+impl<'input> From<&ParsedChecksum> for Token<'input> {
+    fn from(checksum: &ParsedChecksum) -> Self {
+        Self::Checksum(checksum.inner)
+    }
+}
+
+impl<'input> From<&ParsedWhitespace<'input>> for Token<'input> {
+    fn from(whitespace: &ParsedWhitespace<'input>) -> Self {
+        Self::Whitespace(Cow::Borrowed(whitespace.inner))
+    }
+}
+
+impl<'input> From<&ParsedNewline> for Token<'input> {
+    fn from(newline: &ParsedNewline) -> Self {
+        Self::Newline {
+            is_crlf: newline.span().len() == 2,
+        }
+    }
+}
+
+impl<'input> From<&ParsedPercent> for Token<'input> {
+    fn from(_percent: &ParsedPercent) -> Self {
+        Self::Percent
     }
 }
 
@@ -37,6 +97,10 @@ impl fmt::Display for Token<'_> {
                 false => write!(f, ";{}", inner),
             },
             Checksum(c) => write!(f, "{}", c),
+            Whitespace(w) => write!(f, "{}", w),
+            Newline { is_crlf: true } => write!(f, "\r\n"),
+            Newline { is_crlf: false } => write!(f, "\n"),
+            Percent => write!(f, "%"),
         }
     }
 }

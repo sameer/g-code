@@ -5,14 +5,19 @@ pub mod parse;
 
 #[cfg(test)]
 mod test {
+    use crate::parse::into_diagnostic;
+    use pretty_assertions::assert_eq;
+
     #[test]
     #[cfg(feature = "codespan_helpers")]
-    fn parsing_gcode_then_emitting_then_parsing_again_returns_functionally_equivalent_gcode() {
+    fn parsing_gcode_then_emitting_then_parsing_again_returns_identical_gcode() {
         use codespan_reporting::diagnostic::{Diagnostic, Label};
         use codespan_reporting::term::{
             emit,
             termcolor::{ColorChoice, StandardStream},
         };
+        use std::fmt::Write;
+
         let mut writer = StandardStream::stderr(ColorChoice::Auto);
         let config = codespan_reporting::term::Config::default();
 
@@ -24,16 +29,30 @@ mod test {
             include_str!("../tests/ncviewer_sample.gcode"),
         ] {
             let parsed_file = crate::parse::file_parser(str).unwrap();
-            let emission_tokens = parsed_file
-                .iter_fields()
-                .map(crate::emit::Token::from)
-                .collect::<Vec<_>>();
-            let emitted_gcode = emission_tokens
-                .iter()
-                .map(ToString::to_string)
-                .collect::<Vec<_>>()
-                .join(" ");
-            let reparsed_file = super::parse::file_parser(&emitted_gcode).unwrap();
+            let emission_tokens = parsed_file.iter_emit_tokens().collect::<Vec<_>>();
+
+            let mut emitted_gcode = String::new();
+            for token in emission_tokens {
+                write!(&mut emitted_gcode, "{}", token).unwrap();
+            }
+            assert!(str == emitted_gcode);
+
+            let reparsed_file = match super::parse::file_parser(&emitted_gcode) {
+                Ok(reparsed) => reparsed,
+                Err(err) => {
+                    emit(
+                        &mut writer,
+                        &config,
+                        &codespan_reporting::files::SimpleFile::new(
+                            "test_input.gcode",
+                            emitted_gcode,
+                        ),
+                        &into_diagnostic(&err),
+                    )
+                    .unwrap();
+                    panic!("{}", err);
+                }
+            };
             parsed_file
                 .iter_fields()
                 .zip(reparsed_file.iter_fields())

@@ -1,5 +1,7 @@
+use crate::emit::Token;
+
 use super::token::*;
-use std::fmt::Debug;
+use std::{fmt::Debug, iter::Peekable};
 
 #[derive(Clone, Copy, Debug, PartialEq, Hash, Eq)]
 /// A range of [u8] in the raw text of the program.
@@ -8,6 +10,12 @@ use std::fmt::Debug;
 ///
 /// The end of the span is exclusive.
 pub struct Span(pub usize, pub usize);
+
+impl Span {
+    pub fn len(&self) -> usize {
+        self.1.saturating_sub(self.0)
+    }
+}
 
 pub trait Spanned {
     fn span(&self) -> Span;
@@ -38,10 +46,9 @@ impl From<Span> for std::ops::Range<usize> {
 /// Representation of a sequence of g-code logically organized as a file.
 /// This may also be referred to as a program.
 pub struct File<'input> {
-    pub(crate) start_percent: bool,
+    pub(crate) percents: Vec<Percent>,
     pub(crate) lines: Vec<(Line<'input>, Newline)>,
     pub(crate) last_line: Option<Line<'input>>,
-    pub(crate) end_percent: bool,
     pub(crate) span: Span,
 }
 
@@ -70,9 +77,32 @@ impl<'input> File<'input> {
         self.iter().flat_map(Line::iter_whitespace)
     }
 
+    /// Iterate by [Comment] in a file.
+    pub fn iter_comments(&self) -> impl Iterator<Item = &Comment<'input>> {
+        self.iter().filter_map(|l| l.comment.as_ref())
+    }
+
+    /// Iterate by [Checksum] in a file.
+    pub fn iter_checksums(&self) -> impl Iterator<Item = &Checksum> {
+        self.iter().filter_map(|l| l.checksum.as_ref())
+    }
+
     /// Iterate by [u8] in the file.
     pub fn iter_bytes(&self) -> impl Iterator<Item = &u8> {
         self.iter().flat_map(|line| line.iter_bytes())
+    }
+
+    /// Iterate by emission [Token].
+    pub fn iter_emit_tokens<'a>(&'a self) -> impl Iterator<Item = Token<'a>> {
+        TokenizingIterator {
+            field_iterator: self.iter_fields().peekable(),
+            inline_comment_iterator: self.iter_inline_comments().peekable(),
+            whitespace_iterator: self.iter_whitespace().peekable(),
+            checksum_iterator: self.iter_checksums().peekable(),
+            comment_iterator: self.iter_comments().peekable(),
+            newline_iterator: self.lines.iter().map(|(_, newline)| newline).peekable(),
+            percent_iterator: self.percents.iter().peekable()
+        }
     }
 }
 
@@ -122,6 +152,29 @@ impl<'input> Snippet<'input> {
     pub fn iter_bytes(&self) -> impl Iterator<Item = &u8> {
         self.iter().map(|line| line.iter_bytes()).flatten()
     }
+
+    /// Iterate by [Comment] in the snippet.
+    pub fn iter_comments(&self) -> impl Iterator<Item = &Comment<'input>> {
+        self.iter().filter_map(|l| l.comment.as_ref())
+    }
+
+    /// Iterate by [Checksum] in the snippet.
+    pub fn iter_checksums(&self) -> impl Iterator<Item = &Checksum> {
+        self.iter().filter_map(|l| l.checksum.as_ref())
+    }
+
+    /// Iterate by emission [Token].
+    pub fn iter_emit_tokens<'a>(&'a self) -> impl Iterator<Item = Token<'a>> {
+        TokenizingIterator {
+            field_iterator: self.iter_fields().peekable(),
+            inline_comment_iterator: self.iter_inline_comments().peekable(),
+            whitespace_iterator: self.iter_whitespace().peekable(),
+            checksum_iterator: self.iter_checksums().peekable(),
+            comment_iterator: self.iter_comments().peekable(),
+            newline_iterator: self.lines.iter().map(|(_, newline)| newline).peekable(),
+            percent_iterator: None.iter().peekable(),
+        }
+    }
 }
 
 impl<'input> Spanned for Snippet<'input> {
@@ -164,6 +217,19 @@ impl<'input> Line<'input> {
             .filter_map(|c| c.whitespace.as_ref())
     }
 
+    /// Iterate by emission [Token] in a line of g-code.
+    pub fn iter_emit_tokens<'a>(&'a self) -> impl Iterator<Item = Token<'a>> {
+        TokenizingIterator {
+            field_iterator: self.iter_fields().peekable(),
+            inline_comment_iterator: self.iter_inline_comments().peekable(),
+            whitespace_iterator: self.iter_whitespace().peekable(),
+            checksum_iterator: self.checksum.iter().peekable(),
+            comment_iterator: self.comment.iter().peekable(),
+            newline_iterator: None.iter().peekable(),
+            percent_iterator: None.iter().peekable(),
+        }
+    }
+
     /// Validate the line's checksum, if any, against its fields.
     ///
     /// Returns [None] if there is no checksum.
@@ -203,5 +269,69 @@ impl<'input> Line<'input> {
             self.span.1
         } - self.span.0;
         self.iter_bytes().take(take).fold(0u8, |acc, b| acc ^ b)
+    }
+}
+
+struct TokenizingIterator<'a, 'input: 'a, F, IC, W, C, CHK, N, P>
+where
+    F: Iterator<Item = &'a Field<'input>>,
+    IC: Iterator<Item = &'a InlineComment<'input>>,
+    W: Iterator<Item = &'a Whitespace<'input>>,
+    C: Iterator<Item = &'a Comment<'input>>,
+    CHK: Iterator<Item = &'a Checksum>,
+    N: Iterator<Item = &'a Newline>,
+    P: Iterator<Item = &'a Percent>,
+{
+    field_iterator: Peekable<F>,
+    inline_comment_iterator: Peekable<IC>,
+    whitespace_iterator: Peekable<W>,
+    checksum_iterator: Peekable<CHK>,
+    comment_iterator: Peekable<C>,
+    newline_iterator: Peekable<N>,
+    percent_iterator: Peekable<P>
+}
+
+impl<'a, 'input: 'a, F, IC, W, C, CHK, N, P> Iterator
+    for TokenizingIterator<'a, 'input, F, IC, W, C, CHK, N, P>
+where
+    F: Iterator<Item = &'a Field<'input>>,
+    IC: Iterator<Item = &'a InlineComment<'input>>,
+    W: Iterator<Item = &'a Whitespace<'input>>,
+    C: Iterator<Item = &'a Comment<'input>>,
+    CHK: Iterator<Item = &'a Checksum>,
+    N: Iterator<Item = &'a Newline>,
+    P: Iterator<Item = &'a Percent>,
+{
+    type Item = Token<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let spans = [
+            self.field_iterator.peek().map(|x| x.span()),
+            self.inline_comment_iterator.peek().map(|x| x.span()),
+            self.whitespace_iterator.peek().map(|x| x.span()),
+            self.checksum_iterator.peek().map(|x| x.span()),
+            self.comment_iterator.peek().map(|x| x.span()),
+            self.newline_iterator.peek().map(|x| x.span()),
+            self.percent_iterator.peek().map(|x| x.span()),
+        ];
+        if let Some((i, _)) = spans
+            .iter()
+            .enumerate()
+            .filter(|(_, span)| span.is_some())
+            .min_by_key(|(_, span)| span.unwrap().0)
+        {
+            match i {
+                0 => Some(Token::from(self.field_iterator.next().unwrap())),
+                1 => Some(Token::from(self.inline_comment_iterator.next().unwrap())),
+                2 => Some(Token::from(self.whitespace_iterator.next().unwrap())),
+                3 => Some(Token::from(self.checksum_iterator.next().unwrap())),
+                4 => Some(Token::from(self.comment_iterator.next().unwrap())),
+                5 => Some(Token::from(self.newline_iterator.next().unwrap())),
+                6 => Some(Token::from(self.percent_iterator.next().unwrap())),
+                _ => unreachable!(),
+            }
+        } else {
+            None
+        }
     }
 }
