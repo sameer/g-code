@@ -1,6 +1,6 @@
-/// GCode emitter with a few basic commands and argument-checking
+/// g-code emitter with a few basic commands and argument-checking
 pub mod emit;
-/// GCode parser written with [peg]
+/// g-code parser written with [peg]
 pub mod parse;
 
 #[cfg(test)]

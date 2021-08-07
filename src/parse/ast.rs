@@ -35,7 +35,7 @@ impl From<Span> for std::ops::Range<usize> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-/// Representation of a sequence of GCode logically organized as a file.
+/// Representation of a sequence of g-code logically organized as a file.
 /// This may also be referred to as a program.
 pub struct File<'input> {
     pub(crate) start_percent: bool,
@@ -55,15 +55,24 @@ impl<'input> File<'input> {
             .chain(self.last_line.iter())
     }
 
-    /// Iterating by [Line] may be too verbose, so this method is offered as
-    /// an alternative for directly examining each [`Field`].
+    /// Iterating by [Line] in a file.
     pub fn iter_fields(&self) -> impl Iterator<Item = &Field<'input>> {
-        self.iter().map(|line| line.iter_fields()).flatten()
+        self.iter().flat_map(Line::iter_fields)
+    }
+
+    /// Iterate by [InlineComment] in a file.
+    pub fn iter_inline_comments(&self) -> impl Iterator<Item = &InlineComment<'input>> {
+        self.iter().flat_map(Line::iter_inline_comments)
+    }
+
+    /// Iterate by [Whitespace] in a file.
+    pub fn iter_whitespace(&self) -> impl Iterator<Item = &Whitespace<'input>> {
+        self.iter().flat_map(Line::iter_whitespace)
     }
 
     /// Iterate by [u8] in the file.
     pub fn iter_bytes(&self) -> impl Iterator<Item = &u8> {
-        self.iter().map(|line| line.iter_bytes()).flatten()
+        self.iter().flat_map(|line| line.iter_bytes())
     }
 }
 
@@ -74,7 +83,7 @@ impl<'input> Spanned for File<'input> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-/// A sequence of GCode that may be inserted into a file.
+/// A sequence of g-code that may be inserted into a file.
 ///
 /// This might be used when verifying user-supplied tool
 /// start/stop sequences.
@@ -94,10 +103,19 @@ impl<'input> Snippet<'input> {
             .chain(self.last_line.iter())
     }
 
-    /// Iterating by [Line] may be too verbose, so this method is offered as
-    /// an alternative for directly examining each [Field].
+    /// Iterating by [Line] in a snippet.
     pub fn iter_fields(&self) -> impl Iterator<Item = &Field<'input>> {
-        self.iter().map(|line| line.iter_fields()).flatten()
+        self.iter().flat_map(Line::iter_fields)
+    }
+
+    /// Iterate by [InlineComment] in a snippet.
+    pub fn iter_inline_comments(&self) -> impl Iterator<Item = &InlineComment<'input>> {
+        self.iter().flat_map(Line::iter_inline_comments)
+    }
+
+    /// Iterate by [Whitespace] in a snippet.
+    pub fn iter_whitespace(&self) -> impl Iterator<Item = &Whitespace<'input>> {
+        self.iter().flat_map(Line::iter_whitespace)
     }
 
     /// Iterate by [u8] in the snippet.
@@ -112,7 +130,7 @@ impl<'input> Spanned for Snippet<'input> {
     }
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
-/// A sequence of GCode that is either followed by a [Newline] or at the end of a file.
+/// A sequence of g-code that is either followed by a [Newline] or at the end of a file.
 pub struct Line<'input> {
     pub(crate) line_components: Vec<LineComponent<'input>>,
     pub(crate) checksum: Option<Checksum>,
@@ -127,9 +145,23 @@ impl<'input> Spanned for Line<'input> {
 }
 
 impl<'input> Line<'input> {
-    /// Iterate by [Field] in a line of GCode.
+    /// Iterate by [Field] in a line of g-code.
     pub fn iter_fields(&self) -> impl Iterator<Item = &Field<'input>> {
         self.line_components.iter().filter_map(|c| c.field.as_ref())
+    }
+
+    /// Iterate by [InlineComment] in a line of g-code.
+    pub fn iter_inline_comments(&self) -> impl Iterator<Item = &InlineComment<'input>> {
+        self.line_components
+            .iter()
+            .filter_map(|c| c.inline_comment.as_ref())
+    }
+
+    /// Iterate by [Whitespace] in a line of g-code.
+    pub fn iter_whitespace(&self) -> impl Iterator<Item = &Whitespace<'input>> {
+        self.line_components
+            .iter()
+            .filter_map(|c| c.whitespace.as_ref())
     }
 
     /// Validate the line's checksum, if any, against its fields.

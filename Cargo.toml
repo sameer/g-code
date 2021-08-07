@@ -1,6 +1,6 @@
 [package]
 name = "g-code"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Sameer Puri <git@purisa.me>"]
 edition = "2018"
 keywords = ["gcode", "g-code", "plotter", "cnc"]
@@ -9,7 +9,7 @@ repository = "https://github.com/sameer/g-code"
 documentation = "https://docs.rs/g-code"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
-description = "GCode parsing and emission"
+description = "g-code parsing and emission"
 
 [badges]
 is-it-maintained-issue-resolution = { repository = "sameer/g-code" }

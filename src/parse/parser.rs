@@ -133,7 +133,7 @@ peg::parser! {
             }
         };
 
-        /// Parse a GCode file
+        /// Parse a g-code file
         pub rule file_parser() -> File<'input>
             = left:position!() start_percent:percent() lines:(a:line() b:newline() { (a, b) })* last_line:line() end_percent:percent() right:position!() {
                 File {

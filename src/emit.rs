@@ -41,7 +41,7 @@ impl fmt::Display for Token<'_> {
     }
 }
 
-/// Fundamental unit of GCode: a descriptive letter followed by a value.
+/// Fundamental unit of g-code: a descriptive letter followed by a value.
 ///
 /// Field type supports owned and partially-borrowed representations using [Cow].
 #[derive(Clone, PartialEq, Debug)]
@@ -84,7 +84,7 @@ impl<'a> Field<'a> {
 }
 
 /// All the possible variations of a field's value.
-/// Some flavors of GCode also allow for strings.
+/// Some flavors of g-code also allow for strings.
 ///
 /// Any strings here are expected to have escaped characters, see <https://www.reprap.org/wiki/G-code#Quoted_strings>
 #[derive(Clone, PartialEq, Debug)]
@@ -213,7 +213,7 @@ macro_rules! impl_commands {
             )*
         }
 
-        /// Commands are the operational unit of GCode
+        /// Commands are the operational unit of g-code
         ///
         /// They consist of a G, M, or other top-level field followed by field arguments
         #[derive(Clone, PartialEq, Debug)]

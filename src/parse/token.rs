@@ -29,17 +29,17 @@ impl<'input> Spanned for Field<'input> {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value<'input> {
-    /// A real number GCode value.
+    /// A real number g-code value.
     ///
     /// While this is often an [f64] or [f32],
     /// that was converted to a string,
     /// it is parsed as a [Decimal] to
     /// ensure numerical stability.
     Rational(Decimal),
-    /// An unsigned integer GCode value fitting in a [usize].
+    /// An unsigned integer g-code value fitting in a [usize].
     /// For instance, this would be the 0 in G0.
     Integer(usize),
-    /// A [string](str) GCode value.
+    /// A [string](str) g-code value.
     ///
     /// Delimiting quotes are included in the value
     /// and escaped quotes are NOT unescaped.
@@ -99,7 +99,7 @@ impl<'input> Spanned for Whitespace<'input> {
 /// The semicolon is part of the inner representation.
 ///
 /// Some machines/programs will display these comments
-/// as the GCode is executed.
+/// as the g-code is executed.
 pub struct Comment<'input> {
     pub(crate) inner: &'input str,
     pub(crate) pos: usize,

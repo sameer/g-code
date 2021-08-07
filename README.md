@@ -2,7 +2,7 @@
 
 ![g-code](https://github.com/sameer/g-code/workflows/g-code/badge.svg) [![codecov](https://codecov.io/gh/sameer/g-code/branch/main/graph/badge.svg?token=BXZQBMCAMI)](https://codecov.io/gh/sameer/g-code)
 
-A joint crate for GCode parsing and emission.
+A joint crate for g-code parsing and emission.
 
 ## Parsing
 
@@ -19,7 +19,7 @@ Output: https://gist.github.com/sameer/5fe20dad6faa6329926df48b82e68581
 
 ## Emission
 
-Basic primitives for GCode emission.
+Basic primitives for g-code emission.
 
 ### Demo
 
@@ -28,8 +28,8 @@ See [svg2gcode](https://github.com/sameer/svg2gcode).
 ## TODOs
 
 ### Parse
-* [ ] GCode parameters 
-* [ ] GCode infix notation
+* [ ] g-code parameters 
+* [ ] g-code infix notation
 
 ### Emit
 * [ ] Remaining commonly-used commands
