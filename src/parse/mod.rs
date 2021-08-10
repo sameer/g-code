@@ -20,13 +20,18 @@ pub fn into_diagnostic(err: &ParseError) -> Diagnostic {
     } else if expected_count == 1 {
         format!("expected {}", err.expected.tokens().next().unwrap())
     } else {
+        let tokens = {
+            let mut tokens = err.expected.tokens().collect::<Vec<_>>();
+            tokens.sort();
+            tokens
+        };
         let mut acc = "expected one of ".to_string();
-        for token in err.expected.tokens().take(expected_count - 1) {
+        for token in tokens.iter().take(expected_count - 1) {
             acc += token;
             acc += ", ";
         }
         acc += "or ";
-        acc += err.expected.tokens().last().unwrap();
+        acc += tokens.last().unwrap();
         acc
     };
     Diagnostic::error()
