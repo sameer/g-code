@@ -36,7 +36,7 @@ impl<'input> From<&ParsedField<'input>> for Token<'input> {
     }
 }
 
-impl<'a, 'input: 'a> From<&'a ParsedInlineComment<'input>> for Token<'a> {
+impl<'a, 'input: 'a> From<&'a ParsedInlineComment<'input>> for Token<'input> {
     fn from(comment: &'a ParsedInlineComment<'input>) -> Self {
         Self::Comment {
             is_inline: true,

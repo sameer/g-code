@@ -93,7 +93,7 @@ impl<'input> File<'input> {
     }
 
     /// Iterate by emission [Token].
-    pub fn iter_emit_tokens<'a>(&'a self) -> impl Iterator<Item = Token<'a>> {
+    pub fn iter_emit_tokens<'a>(&'a self) -> impl Iterator<Item = Token<'input>> + 'a {
         TokenizingIterator {
             field_iterator: self.iter_fields().peekable(),
             inline_comment_iterator: self.iter_inline_comments().peekable(),
@@ -101,7 +101,7 @@ impl<'input> File<'input> {
             checksum_iterator: self.iter_checksums().peekable(),
             comment_iterator: self.iter_comments().peekable(),
             newline_iterator: self.lines.iter().map(|(_, newline)| newline).peekable(),
-            percent_iterator: self.percents.iter().peekable()
+            percent_iterator: self.percents.iter().peekable(),
         }
     }
 }
@@ -164,7 +164,7 @@ impl<'input> Snippet<'input> {
     }
 
     /// Iterate by emission [Token].
-    pub fn iter_emit_tokens<'a>(&'a self) -> impl Iterator<Item = Token<'a>> {
+    pub fn iter_emit_tokens<'a>(&'a self) -> impl Iterator<Item = Token<'input>> + 'a {
         TokenizingIterator {
             field_iterator: self.iter_fields().peekable(),
             inline_comment_iterator: self.iter_inline_comments().peekable(),
@@ -218,7 +218,7 @@ impl<'input> Line<'input> {
     }
 
     /// Iterate by emission [Token] in a line of g-code.
-    pub fn iter_emit_tokens<'a>(&'a self) -> impl Iterator<Item = Token<'a>> {
+    pub fn iter_emit_tokens<'a>(&'a self) -> impl Iterator<Item = Token<'input>> + 'a {
         TokenizingIterator {
             field_iterator: self.iter_fields().peekable(),
             inline_comment_iterator: self.iter_inline_comments().peekable(),
@@ -288,7 +288,7 @@ where
     checksum_iterator: Peekable<CHK>,
     comment_iterator: Peekable<C>,
     newline_iterator: Peekable<N>,
-    percent_iterator: Peekable<P>
+    percent_iterator: Peekable<P>,
 }
 
 impl<'a, 'input: 'a, F, IC, W, C, CHK, N, P> Iterator
@@ -302,7 +302,7 @@ where
     N: Iterator<Item = &'a Newline>,
     P: Iterator<Item = &'a Percent>,
 {
-    type Item = Token<'a>;
+    type Item = Token<'input>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let spans = [
