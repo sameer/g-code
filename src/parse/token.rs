@@ -85,7 +85,6 @@ impl Spanned for Percent {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Any sequence of ASCII whitespace except for [Newline].
 pub struct Whitespace<'input> {

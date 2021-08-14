@@ -97,11 +97,7 @@ impl<'input> File<'input> {
         TokenizingIterator {
             field_iterator: self.iter_fields().peekable(),
             inline_comment_iterator: self.iter_inline_comments().peekable(),
-            whitespace_iterator: self.iter_whitespace().peekable(),
-            checksum_iterator: self.iter_checksums().peekable(),
             comment_iterator: self.iter_comments().peekable(),
-            newline_iterator: self.lines.iter().map(|(_, newline)| newline).peekable(),
-            percent_iterator: self.percents.iter().peekable(),
         }
     }
 }
@@ -168,11 +164,7 @@ impl<'input> Snippet<'input> {
         TokenizingIterator {
             field_iterator: self.iter_fields().peekable(),
             inline_comment_iterator: self.iter_inline_comments().peekable(),
-            whitespace_iterator: self.iter_whitespace().peekable(),
-            checksum_iterator: self.iter_checksums().peekable(),
             comment_iterator: self.iter_comments().peekable(),
-            newline_iterator: self.lines.iter().map(|(_, newline)| newline).peekable(),
-            percent_iterator: None.iter().peekable(),
         }
     }
 }
@@ -222,11 +214,7 @@ impl<'input> Line<'input> {
         TokenizingIterator {
             field_iterator: self.iter_fields().peekable(),
             inline_comment_iterator: self.iter_inline_comments().peekable(),
-            whitespace_iterator: self.iter_whitespace().peekable(),
-            checksum_iterator: self.checksum.iter().peekable(),
             comment_iterator: self.comment.iter().peekable(),
-            newline_iterator: None.iter().peekable(),
-            percent_iterator: None.iter().peekable(),
         }
     }
 
@@ -272,35 +260,22 @@ impl<'input> Line<'input> {
     }
 }
 
-struct TokenizingIterator<'a, 'input: 'a, F, IC, W, C, CHK, N, P>
+struct TokenizingIterator<'a, 'input: 'a, F, IC, C>
 where
     F: Iterator<Item = &'a Field<'input>>,
     IC: Iterator<Item = &'a InlineComment<'input>>,
-    W: Iterator<Item = &'a Whitespace<'input>>,
     C: Iterator<Item = &'a Comment<'input>>,
-    CHK: Iterator<Item = &'a Checksum>,
-    N: Iterator<Item = &'a Newline>,
-    P: Iterator<Item = &'a Percent>,
 {
     field_iterator: Peekable<F>,
     inline_comment_iterator: Peekable<IC>,
-    whitespace_iterator: Peekable<W>,
-    checksum_iterator: Peekable<CHK>,
     comment_iterator: Peekable<C>,
-    newline_iterator: Peekable<N>,
-    percent_iterator: Peekable<P>,
 }
 
-impl<'a, 'input: 'a, F, IC, W, C, CHK, N, P> Iterator
-    for TokenizingIterator<'a, 'input, F, IC, W, C, CHK, N, P>
+impl<'a, 'input: 'a, F, IC, C> Iterator for TokenizingIterator<'a, 'input, F, IC, C>
 where
     F: Iterator<Item = &'a Field<'input>>,
     IC: Iterator<Item = &'a InlineComment<'input>>,
-    W: Iterator<Item = &'a Whitespace<'input>>,
     C: Iterator<Item = &'a Comment<'input>>,
-    CHK: Iterator<Item = &'a Checksum>,
-    N: Iterator<Item = &'a Newline>,
-    P: Iterator<Item = &'a Percent>,
 {
     type Item = Token<'input>;
 
@@ -308,11 +283,7 @@ where
         let spans = [
             self.field_iterator.peek().map(|x| x.span()),
             self.inline_comment_iterator.peek().map(|x| x.span()),
-            self.whitespace_iterator.peek().map(|x| x.span()),
-            self.checksum_iterator.peek().map(|x| x.span()),
             self.comment_iterator.peek().map(|x| x.span()),
-            self.newline_iterator.peek().map(|x| x.span()),
-            self.percent_iterator.peek().map(|x| x.span()),
         ];
         if let Some((i, _)) = spans
             .iter()
@@ -323,11 +294,7 @@ where
             match i {
                 0 => Some(Token::from(self.field_iterator.next().unwrap())),
                 1 => Some(Token::from(self.inline_comment_iterator.next().unwrap())),
-                2 => Some(Token::from(self.whitespace_iterator.next().unwrap())),
-                3 => Some(Token::from(self.checksum_iterator.next().unwrap())),
-                4 => Some(Token::from(self.comment_iterator.next().unwrap())),
-                5 => Some(Token::from(self.newline_iterator.next().unwrap())),
-                6 => Some(Token::from(self.percent_iterator.next().unwrap())),
+                2 => Some(Token::from(self.comment_iterator.next().unwrap())),
                 _ => unreachable!(),
             }
         } else {

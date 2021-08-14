@@ -1,1 +1,0 @@
-M587 S"MYROUTER" P"ABC'X'Y'Z;"" 123"
