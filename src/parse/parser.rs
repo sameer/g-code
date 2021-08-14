@@ -23,7 +23,13 @@ peg::parser! {
         rule ascii_except_closing_parenthesis_or_newline() -> &'input str = quiet! { $(['\t' | ' '..='(' | '*'..='~']*) } / expected!("ASCII character except closing parenthesis or newline");
         rule opening_parenthesis() -> &'input str = quiet! { $("(") } / expected!("opening parenthesis");
         rule closing_parenthesis() -> &'input str = quiet! { $(")") } / expected!("closing parenthesis");
-        pub rule inline_comment() -> InlineComment<'input> = pos:position!() inner:$(opening_parenthesis() ascii_except_closing_parenthesis_or_newline() closing_parenthesis()) {
+
+        rule inline_comment_raw() -> &'input str = precedence! {
+            x:$(opening_parenthesis() inline_comment_raw() closing_parenthesis()) { x }
+            --
+            x:$(opening_parenthesis() ascii_except_closing_parenthesis_or_newline() closing_parenthesis()) { x }
+        };
+        pub rule inline_comment() -> InlineComment<'input> = pos:position!() inner:inline_comment_raw() {
             InlineComment {
                 inner,
                 pos,
