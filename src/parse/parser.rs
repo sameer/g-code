@@ -1,5 +1,22 @@
+use rust_decimal::Error;
+
+fn decimal_err_into_str(err: Error) -> &'static str {
+    match err {
+        Error::ExceedsMaximumPossibleValue => {
+            "number is exceeds than the maximum that can be represented"
+        }
+        Error::LessThanMinimumPossibleValue => {
+            "number is less than the minimum that can be represented"
+        }
+        Error::ScaleExceedsMaximumPrecision(_) => {
+            "precision necessary to represent exceeds the maximum possible"
+        }
+        Error::ErrorString(_) => "cannot parse as decimal (unable to display root cause)",
+    }
+}
+
 peg::parser! {
-    pub grammar g_code() for str{
+    pub grammar g_code() for str {
         use super::super::token::*;
         use super::super::ast::*;
         use rust_decimal::Decimal;
@@ -54,7 +71,7 @@ peg::parser! {
 
         pub rule checksum() -> Checksum = left:position!() star:star() checksum:integer() right:position!() {?
             Ok(Checksum {
-                inner: checksum.parse::<u8>().map_err(|e| "checksum is not byte-sized")?,
+                inner: checksum.parse::<u8>().map_err(|e| "checksum is not an unsigned byte")?,
                 span: Span(left, right)
             })
         };
@@ -68,7 +85,7 @@ peg::parser! {
                 Ok(Field {
                     letters,
                     value: Value::Rational(lhs.parse::<Decimal>()
-                        .map_err(|e| "integer part does not fit in an i64")
+                        .map_err(decimal_err_into_str)
                         .and_then(|lhs| if let Some(rhs_str) = rhs {
                             rhs_str.parse::<i64>()
                                 .map(|rhs| Decimal::new(rhs, rhs_str.len() as u32))
@@ -109,7 +126,7 @@ peg::parser! {
                 let value_end = right;
                 Ok(Field {
                     letters,
-                    value: Value::Rational(-value.parse::<Decimal>().map_err(|e| "integer does not fit in i64")?),
+                    value: Value::Rational(-value.parse::<Decimal>().map_err(decimal_err_into_str)?),
                     raw_value: vec!["-", value],
                     span: Span(left, right)
                 })

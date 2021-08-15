@@ -22,7 +22,7 @@ pub fn into_diagnostic(err: &ParseError) -> Diagnostic {
     } else {
         let tokens = {
             let mut tokens = err.expected.tokens().collect::<Vec<_>>();
-            tokens.sort();
+            tokens.sort_unstable();
             tokens
         };
         let mut acc = "expected one of ".to_string();

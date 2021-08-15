@@ -15,6 +15,10 @@ impl Span {
     pub fn len(&self) -> usize {
         self.1.saturating_sub(self.0)
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.1 <= self.0
+    }
 }
 
 pub trait Spanned {
