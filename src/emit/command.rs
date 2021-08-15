@@ -17,7 +17,7 @@ macro_rules! command {
     }) => {
         {
             paste::expr!{
-                g_code::emit::[<$commandName:snake:lower>](
+                g_code::emit::command::[<$commandName:snake:lower>](
                     vec![$(
                         g_code::emit::Field {
                             letters: std::borrow::Cow::Borrowed(stringify!([<$arg:upper>])),
