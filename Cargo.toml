@@ -1,6 +1,6 @@
 [package]
 name = "g-code"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Sameer Puri <git@purisa.me>"]
 edition = "2018"
 keywords = ["gcode", "g-code", "plotter", "cnc"]

@@ -31,7 +31,7 @@ macro_rules! command {
 }
 
 macro_rules! impl_commands {
-    ($($(#[$outer:meta])* $commandName: ident {$letters: expr, $value: literal, {$($(#[$inner:meta])* $arg: ident), *} },)*) => {
+    ($($(#[$outer:meta])* $commandName: ident {$letters: expr, $value: literal, {$($(#[$inner:meta])* $arg: ident), *} } )*) => {
 
         paste! {
             $(
@@ -132,8 +132,10 @@ macro_rules! impl_commands {
 }
 
 impl_commands!(
-    /// Moves the head at the fastest possible speed to the desired speed
-    /// Never enter a cut with rapid positioning
+    /// Moves the head to the desired position
+    /// at the fastest possible speed.
+    ///
+    /// *NEVER* enter a cut with rapid positioning.
     /// Some older machines may "dog leg" rapid positioning, moving one axis at a time
     RapidPositioning {
         "G", 0, {
@@ -149,7 +151,9 @@ impl_commands!(
             B,
             C
         }
-    },
+    }
+    /// Interpolate along a line to the desired position
+    ///
     /// Typically used for "cutting" motion
     LinearInterpolation {
         "G", 1, {
@@ -165,53 +169,87 @@ impl_commands!(
             B,
             C
         }
-    },
+    }
+    /// Interpolate along an arc to the desired position
+    ///
+    /// The machine will maintain either a constant distance
+    /// from the arc's center `(I, J, K)` or a constant radius `R`.
+    ///
+    /// Not all machines support this command. Those that do typically
+    /// recommend short arcs. Some may have a maximum supported radius.
+    ClockwiseCircularInterpolation {
+        "G", 2, {
+            X,
+            Y,
+            Z,
+            I,
+            J,
+            K,
+            E,
+            F,
+            R
+        }
+    }
+    /// See guidance on [clockwise_circular_interpolation]
+    CounterclockwiseCircularInterpolation {
+        "G", 3, {
+            X,
+            Y,
+            Z,
+            I,
+            J,
+            K,
+            E,
+            F,
+            R
+        }
+    }
     /// This will keep the axes unmoving for the period of time in seconds specified by the P number
     Dwell {
         "G", 4, {
             /// Time in seconds
             P
         }
-    },
+    }
     /// Use inches for length units
     UnitsInches {
         "G", 20, {}
-    },
+    }
     /// Use millimeters for length units
     UnitsMillimeters {
         "G", 21, {}
-    },
+    }
     /// In absolute distance mode, axis numbers usually represent positions in terms of the currently active coordinate system.
     AbsoluteDistanceMode {
         "G", 90, {}
-    },
+    }
     /// In relative distance mode, axis numbers usually represent increments from the current values of the numbers
     RelativeDistanceMode {
         "G", 91, {}
-    },
+    }
     FeedRateUnitsPerMinute {
         "G", 94, {}
-    },
+    }
     /// Start spinning the spindle clockwise with speed `p`
     StartSpindleClockwise {
         "M", 3, {
             /// Speed
             P
         }
-    },
+    }
     /// Start spinning the spindle counterclockwise with speed `p`
     StartSpindleCounterclockwise {
         "M", 4, {
             /// Speed
             P
         }
-    },
+    }
     /// Stop spinning the spindle
     StopSpindle {
         "M", 5, {}
-    },
+    }
     /// Signals the end of a program
     ProgramEnd {
         "M", 2, {}
-    },
+    }
 );
