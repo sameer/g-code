@@ -32,9 +32,7 @@ See [svg2gcode](https://github.com/sameer/svg2gcode).
 * [ ] g-code infix notation
 
 ### Emit
-* [ ] Remaining commonly-used commands
-* [ ] Automated line number, newline, and checksum insertion
-* [ ] EOL and inline comments
+* [ ] Remaining commonly-used commands (open an issue or create a PR if you need one that's missing)
 
 ## References
 
