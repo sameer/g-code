@@ -37,7 +37,8 @@ macro_rules! impl_commands {
             $(
                 $(#[$outer])*
                 ///
-                /// Call this function to instantiate the command.
+                /// To instantiate the command, call this function
+                /// or use the [crate::command] macro.
                 pub fn [<$commandName:snake:lower>]<'a, I: Iterator<Item = Field<'a>>>(args: I) -> Command<'a> {
                     Command {
                         name: [<$commandName:snake:upper _FIELD>].clone(),
