@@ -1,6 +1,6 @@
 # g-code
 
-![g-code](https://github.com/sameer/g-code/workflows/g-code/badge.svg) [![codecov](https://codecov.io/gh/sameer/g-code/branch/main/graph/badge.svg?token=BXZQBMCAMI)](https://codecov.io/gh/sameer/g-code)
+[![crates.io](https://img.shields.io/crates/v/g-code.svg)](https://crates.io/crates/g-code) [![g-code](https://docs.rs/g-code/badge.svg)](https://docs.rs/g-code) ![g-code](https://github.com/sameer/g-code/workflows/g-code/badge.svg) [![codecov](https://codecov.io/gh/sameer/g-code/branch/main/graph/badge.svg?token=BXZQBMCAMI)](https://codecov.io/gh/sameer/g-code)
 
 A joint crate for g-code parsing and emission.
 
