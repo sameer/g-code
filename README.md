@@ -21,6 +21,8 @@ Output: https://gist.github.com/sameer/5fe20dad6faa6329926df48b82e68581
 
 Basic primitives for g-code emission.
 
+Supports formatting, checksum and line number generation.
+
 ### Demo
 
 See [svg2gcode](https://github.com/sameer/svg2gcode).
