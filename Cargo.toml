@@ -1,6 +1,6 @@
 [package]
 name = "g-code"
-version = "0.3.1"
+version = "0.3.3"
 authors = ["Sameer Puri <git@purisa.me>"]
 edition = "2018"
 keywords = ["gcode", "g-code", "plotter", "cnc"]
@@ -22,6 +22,12 @@ rust_decimal = { version = "1.14", default-features = false, features = ["std"] 
 codespan = { version = "0.11", optional = true }
 codespan-reporting = { version = "0.11", optional = true }
 paste = "1"
+
+[dependencies.serde]
+default-features = false
+optional = true
+version = "1"
+features = ["derive"]
 
 [features]
 default = ["codespan_helpers"]

@@ -5,6 +5,9 @@ use std::io::Write as IoWrite;
 
 use super::{Field, Token, Value};
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 struct XorAndPipe<W> {
     acc: u8,
     downstream: W,
@@ -44,7 +47,8 @@ impl<W> XorAndPipe<W> {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct FormatOptions {
     /// Include checksums
     pub checksums: bool,
