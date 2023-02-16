@@ -12,8 +12,9 @@ fn decimal_err_into_str(err: Error) -> &'static str {
             "precision necessary to represent exceeds the maximum possible"
         }
         Error::ErrorString(_) => "cannot parse as decimal (unable to display root cause)",
-        Error::Underflow => "cannot parse as decimal (unable to display root cause)",
-        Error::ConversionTo(_) => "cannot parse as decimal (unable to display root cause)",
+        Error::Underflow => "number contains more fractional digits than can be represented",
+        Error::ConversionTo(_) => "cannot convert to/from decimal type",
+        _ => "cannot parse as decimal (unknown root cause)",
     }
 }
 

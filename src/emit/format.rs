@@ -82,7 +82,7 @@ macro_rules! formatter_core {
             }
 
             if $opts.line_numbers && preceded_by_newline {
-                write!(w, "N{} ", line_number)?;
+                write!(w, "N{line_number} ")?;
             }
 
             match token {
@@ -96,20 +96,20 @@ macro_rules! formatter_core {
                             writeln!(w)?;
                             w.reset();
                             if $opts.line_numbers {
-                                write!(w, "N{} ", line_number)?;
+                                write!(w, "N{line_number} ")?;
                             }
                         } else {
                             write!(w, " ")?;
                         }
                     }
-                    write!(w, "{}", f)?;
+                    write!(w, "{f}")?;
                     preceded_by_newline = false;
                 }
                 Comment {
                     is_inline: true,
                     inner,
                 } => {
-                    write!(w, "({})", inner)?;
+                    write!(w, "({inner})")?;
                     preceded_by_newline = false;
                 }
                 Comment {
@@ -120,7 +120,7 @@ macro_rules! formatter_core {
                         write!(w, "*{}", w.checksum())?;
                     }
                     line_number += 1;
-                    writeln!(w, ";{}", inner)?;
+                    writeln!(w, ";{inner}")?;
                     w.reset();
                     preceded_by_newline = true;
                 }
@@ -162,10 +162,10 @@ impl fmt::Display for Token<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use Token::*;
         match self {
-            Field(field) => write!(f, "{}", field),
+            Field(field) => write!(f, "{field}"),
             Comment { is_inline, inner } => match is_inline {
-                true => write!(f, "({})", inner),
-                false => write!(f, ";{}", inner),
+                true => write!(f, "({inner})"),
+                false => write!(f, ";{inner}"),
             },
         }
     }
@@ -186,14 +186,14 @@ impl fmt::Display for Value<'_> {
                 // so add it back in.
                 if r.fract().is_zero() {
                     if let Some(i64_rep) = r.to_i64() {
-                        return write!(f, "{}.", i64_rep);
+                        return write!(f, "{i64_rep}.");
                     }
                 }
-                write!(f, "{}", r)
+                write!(f, "{r}")
             }
-            Self::Float(float) => write!(f, "{}", float),
-            Self::Integer(i) => write!(f, "{}", i),
-            Self::String(s) => write!(f, "\"{}\"", s),
+            Self::Float(float) => write!(f, "{float}"),
+            Self::Integer(i) => write!(f, "{i}"),
+            Self::String(s) => write!(f, "\"{s}\""),
         }
     }
 }

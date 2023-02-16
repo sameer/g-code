@@ -33,10 +33,7 @@ impl std::ops::Add for Span {
 }
 impl std::ops::AddAssign for Span {
     fn add_assign(&mut self, rhs: Self) {
-        *self = Self {
-            0: self.0.min(rhs.0),
-            1: self.1.max(rhs.1),
-        }
+        *self = Self(self.0.min(rhs.0), self.1.max(rhs.1))
     }
 }
 
@@ -150,7 +147,7 @@ impl<'input> Snippet<'input> {
 
     /// Iterate by [u8] in the snippet.
     pub fn iter_bytes(&self) -> impl Iterator<Item = &u8> {
-        self.iter().map(|line| line.iter_bytes()).flatten()
+        self.iter().flat_map(|line| line.iter_bytes())
     }
 
     /// Iterate by [Comment] in the snippet.
@@ -245,10 +242,7 @@ impl<'input> Line<'input> {
 
     /// Iterate over [u8] in a [Line].
     pub fn iter_bytes(&self) -> impl Iterator<Item = &u8> {
-        self.line_components
-            .iter()
-            .map(|c| c.iter_bytes())
-            .flatten()
+        self.line_components.iter().flat_map(|c| c.iter_bytes())
     }
 
     /// XORs bytes in a [Line] leading up to the asterisk of a [`Checksum`].

@@ -1,8 +1,8 @@
 [package]
 name = "g-code"
-version = "0.3.3"
+version = "0.3.4"
 authors = ["Sameer Puri <git@purisa.me>"]
-edition = "2018"
+edition = "2021"
 keywords = ["gcode", "g-code", "plotter", "cnc"]
 categories = ["parsing"]
 repository = "https://github.com/sameer/g-code"
@@ -17,8 +17,8 @@ is-it-maintained-open-issues = { repository = "sameer/g-code" }
 maintenance = { status = "passively-maintained" }
 
 [dependencies]
-peg = "0.7"
-rust_decimal = { version = "1.14", default-features = false, features = ["std"] }
+peg = "0.8"
+rust_decimal = { version = "1.28", default-features = false, features = ["std"] }
 codespan = { version = "0.11", optional = true }
 codespan-reporting = { version = "0.11", optional = true }
 paste = "1"

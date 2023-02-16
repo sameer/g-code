@@ -17,7 +17,7 @@ impl<'input> Field<'input> {
         self.letters
             .as_bytes()
             .iter()
-            .chain(self.raw_value.iter().map(|s| s.as_bytes().iter()).flatten())
+            .chain(self.raw_value.iter().flat_map(|s| s.as_bytes().iter()))
     }
 }
 
@@ -164,9 +164,8 @@ impl<'input> LineComponent<'input> {
     pub fn iter_bytes(&'input self) -> impl Iterator<Item = &'input u8> + 'input {
         self.field
             .iter()
-            .map(|f| f.iter_bytes())
-            .flatten()
-            .chain(self.whitespace.iter().map(|w| w.iter_bytes()).flatten())
-            .chain(self.inline_comment.iter().map(|i| i.iter_bytes()).flatten())
+            .flat_map(|f| f.iter_bytes())
+            .chain(self.whitespace.iter().flat_map(|w| w.iter_bytes()))
+            .chain(self.inline_comment.iter().flat_map(|i| i.iter_bytes()))
     }
 }

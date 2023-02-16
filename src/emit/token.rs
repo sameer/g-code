@@ -33,9 +33,9 @@ impl<'a, 'input: 'a> From<&'a ParsedInlineComment<'input>> for Token<'input> {
             inner: Cow::Borrowed(
                 comment
                     .inner
-                    .strip_prefix("(")
+                    .strip_prefix('(')
                     .unwrap()
-                    .strip_suffix(")")
+                    .strip_suffix(')')
                     .unwrap(),
             ),
         }
@@ -46,7 +46,7 @@ impl<'input> From<&ParsedComment<'input>> for Token<'input> {
     fn from(comment: &ParsedComment<'input>) -> Self {
         Self::Comment {
             is_inline: false,
-            inner: Cow::Borrowed(comment.inner.strip_prefix(";").unwrap()),
+            inner: Cow::Borrowed(comment.inner.strip_prefix(';').unwrap()),
         }
     }
 }
