@@ -62,7 +62,7 @@ macro_rules! formatter_core {
     ($program: ident, $opts: ident, $downstream: ident) => {
         use Token::*;
         let mut preceded_by_newline = true;
-        let mut line_number = 1usize;
+        let mut line_number = 0usize;
 
         let mut w = XorAndPipe {
             acc: 0,

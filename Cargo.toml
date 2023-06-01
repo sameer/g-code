@@ -1,6 +1,6 @@
 [package]
 name = "g-code"
-version = "0.3.4"
+version = "0.3.5"
 authors = ["Sameer Puri <git@purisa.me>"]
 edition = "2021"
 keywords = ["gcode", "g-code", "plotter", "cnc"]
@@ -18,7 +18,7 @@ maintenance = { status = "passively-maintained" }
 
 [dependencies]
 peg = "0.8"
-rust_decimal = { version = "1.28", default-features = false, features = ["std"] }
+rust_decimal = { version = "1.29", default-features = false, features = ["std"] }
 codespan = { version = "0.11", optional = true }
 codespan-reporting = { version = "0.11", optional = true }
 paste = "1"
@@ -34,4 +34,4 @@ default = ["codespan_helpers"]
 codespan_helpers = ["codespan", "codespan-reporting"]
 
 [dev-dependencies]
-pretty_assertions = "0.7"
+pretty_assertions = "1"
