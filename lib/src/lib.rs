@@ -50,8 +50,12 @@ mod test {
                 )
             {
                 let mut emitted_gcode = String::new();
-                crate::emit::format_gcode_fmt(&emission_tokens, format_options, &mut emitted_gcode)
-                    .unwrap();
+                crate::emit::format_gcode_fmt(
+                    emission_tokens.iter(),
+                    format_options,
+                    &mut emitted_gcode,
+                )
+                .unwrap();
 
                 let reparsed_file = match super::parse::file_parser(&emitted_gcode) {
                     Ok(reparsed) => reparsed,

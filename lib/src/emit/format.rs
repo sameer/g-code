@@ -126,7 +126,7 @@ macro_rules! formatter_core {
                         write!(w, "*{}", w.checksum())?;
                     }
                     if !preceded_by_newline && $opts.newline_before_comment {
-                        line_number +=1;
+                        line_number += 1;
                         writeln!(w)?;
                     }
                     line_number += 1;
@@ -151,7 +151,11 @@ macro_rules! formatter_core {
 }
 
 /// Write GCode tokens to an [IoWrite] in a nicely formatted manner
-pub fn format_gcode_io<'a, W>(program: impl Iterator<Item = Token<'a>>, opts: FormatOptions, w: W) -> std::io::Result<()>
+pub fn format_gcode_io<'a, W>(
+    program: impl Iterator<Item = Token<'a>>,
+    opts: FormatOptions,
+    w: W,
+) -> std::io::Result<()>
 where
     W: IoWrite,
 {
@@ -160,7 +164,11 @@ where
 }
 
 /// Write formatted GCode to a [FmtWrite] in a nicely formatted manner
-pub fn format_gcode_fmt<'a, W>(program: impl Iterator<Item = Token<'a>>, opts: FormatOptions, w: W) -> fmt::Result
+pub fn format_gcode_fmt<'a: 'b, 'b, W>(
+    program: impl Iterator<Item = &'b Token<'a>>,
+    opts: FormatOptions,
+    w: W,
+) -> fmt::Result
 where
     W: FmtWrite,
 {
