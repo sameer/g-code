@@ -36,11 +36,16 @@ mod test {
                 .flatten()
                 .map(|[a, b]| [[a, b, true], [a, b, false]])
                 .flatten()
+                .map(|[a, b, c]| [[a, b, c, true], [a, b, c, false]])
+                .flatten()
                 .map(
-                    |[checksums, line_numbers, delimit_with_percent]| FormatOptions {
-                        checksums,
-                        line_numbers,
-                        delimit_with_percent,
+                    |[checksums, line_numbers, delimit_with_percent, newline_before_comment]| {
+                        FormatOptions {
+                            checksums,
+                            line_numbers,
+                            delimit_with_percent,
+                            newline_before_comment,
+                        }
                     },
                 )
             {

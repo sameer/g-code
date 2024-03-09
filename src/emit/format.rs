@@ -56,6 +56,12 @@ pub struct FormatOptions {
     pub line_numbers: bool,
     /// Delimit the start and end of data with percent symbols
     pub delimit_with_percent: bool,
+    /// Whether to add a newline before each comment
+    ///
+    /// Some g-code viewers like [NCViewer](https://ncviewer.com/)
+    /// do not correctly handle comments on the same line as g-code commands
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub newline_before_comment: bool,
 }
 
 macro_rules! formatter_core {
@@ -118,6 +124,10 @@ macro_rules! formatter_core {
                 } => {
                     if $opts.checksums {
                         write!(w, "*{}", w.checksum())?;
+                    }
+                    if !preceded_by_newline && $opts.newline_before_comment {
+                        line_number +=1;
+                        writeln!(w)?;
                     }
                     line_number += 1;
                     writeln!(w, ";{inner}")?;
