@@ -90,10 +90,11 @@ peg::parser! {
                         .map_err(decimal_err_into_str)
                         .and_then(|lhs| if let Some(rhs_str) = rhs {
                             rhs_str.parse::<i64>()
+                                .map_err(|e| "fractional part does not fit in an i64")
+                                .and_then(|rhs| if rhs_str.len() > 28 { Err("scale is higher than allowed maximum precision") } else { Ok(rhs)})
                                 .map(|rhs| Decimal::new(rhs, rhs_str.len() as u32))
                                 .map(|rhs| lhs + rhs)
                                 .map(|value| if neg.is_some() { -value } else { value })
-                                .map_err(|e| "fractional part does not fit in an i64")
                         } else {
                             Ok(lhs)
                         })?),
@@ -107,9 +108,10 @@ peg::parser! {
                 Ok(Field {
                     letters,
                     value: Value::Rational(rhs_str.parse::<i64>()
+                        .map_err(|e| "fractional part does not fit in an i64")
+                        .and_then(|rhs| if rhs_str.len() > 28 { Err("scale is higher than allowed maximum precision") } else { Ok(rhs)})
                         .map(|rhs| Decimal::new(rhs, rhs_str.len() as u32))
-                        .map(|rhs| if neg.is_some() { -rhs } else { rhs })
-                        .map_err(|e| "fractional part does not fit in an i64")?),
+                        .map(|rhs| if neg.is_some() { -rhs } else { rhs })?),
                     raw_value: if neg.is_some() { vec!["-", ".", rhs_str] } else { vec![".", rhs_str] },
                     span: Span(left, right)
                 })
