@@ -13,7 +13,7 @@ use super::{Field, Token, Value};
 #[macro_export]
 macro_rules! command {
     ($commandName: ident {
-        $($arg: ident : $value: expr,)*
+        $($arg: ident : $value: expr),* $(,)?
     }) => {
         {
             paste::expr!{
@@ -23,7 +23,7 @@ macro_rules! command {
                             letters: std::borrow::Cow::Borrowed(stringify!([<$arg:upper>])),
                             value: g_code::emit::Value::Float($value),
                         }
-                    ,)*].drain(..)
+                    ,)*].into_iter()
                 )
             }
         }
@@ -71,7 +71,7 @@ macro_rules! impl_commands {
         impl<'a> Command<'a> {
             /// Add a field to the command.
             ///
-            /// Returns [Err] if the Field's letters aren't recognized.
+            /// Returns an error if the Field's letters aren't recognized.
             pub fn push(&mut self, arg: Field<'a>) -> Result<(), &'static str> {
                 paste!{
                     match &self.name {
