@@ -96,7 +96,9 @@ peg::parser! {
                                 .map(|rhs| lhs + rhs)
                                 .map(|value| if neg.is_some() { -value } else { value })
                         } else {
-                            Ok(lhs)
+                            Ok(
+                                if neg.is_some() { -lhs } else { lhs }
+                            )
                         })?),
                     raw_value: if neg.is_some() { vec!["-", lhs, ".", rhs.unwrap_or("")] } else { vec![lhs, ".", rhs.unwrap_or("")] },
                     span: Span(left, right)
