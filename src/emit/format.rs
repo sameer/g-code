@@ -80,7 +80,7 @@ macro_rules! formatter_core {
         }
 
         for token in $program {
-            if let Token::Field(f) = token {
+            if let Token::Field(ref f) = token {
                 // Can't handle user-provided line numbers
                 if preceded_by_newline && f.letters == "N" {
                     continue;
@@ -151,7 +151,7 @@ macro_rules! formatter_core {
 }
 
 /// Write GCode tokens to an [IoWrite] in a nicely formatted manner
-pub fn format_gcode_io<W>(program: &[Token<'_>], opts: FormatOptions, w: W) -> std::io::Result<()>
+pub fn format_gcode_io<'a, W>(program: impl Iterator<Item = Token<'a>>, opts: FormatOptions, w: W) -> std::io::Result<()>
 where
     W: IoWrite,
 {
@@ -160,7 +160,7 @@ where
 }
 
 /// Write formatted GCode to a [FmtWrite] in a nicely formatted manner
-pub fn format_gcode_fmt<W>(program: &[Token<'_>], opts: FormatOptions, w: W) -> fmt::Result
+pub fn format_gcode_fmt<'a, W>(program: impl Iterator<Item = Token<'a>>, opts: FormatOptions, w: W) -> fmt::Result
 where
     W: FmtWrite,
 {
