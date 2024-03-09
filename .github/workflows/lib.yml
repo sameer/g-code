@@ -1,0 +1,44 @@
+name: g-code
+
+on: [push, pull_request]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+      - name: Build
+        run: cargo build -p g-code
+  coverage:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-all-crates: true
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly
+          components: llvm-tools-preview
+      - run: cargo install grcov
+      - run: cargo build -p g-code
+        env:
+          RUSTFLAGS: '-Cinstrument-coverage'
+          RUSTDOCFLAGS: '-Cinstrument-coverage'
+          LLVM_PROFILE_FILE: 'codecov-instrumentation-%p-%m.profraw'
+      - run: RUSTFLAGS='-Cinstrument-coverage' cargo test --all-features --no-fail-fast -p g-code
+        env:
+          RUSTFLAGS: '-Cinstrument-coverage'
+          RUSTDOCFLAGS: '-Cinstrument-coverage'
+          LLVM_PROFILE_FILE: 'codecov-instrumentation-%p-%m.profraw'
+      - run: grcov . -s . --binary-path ./target/debug/ -t lcov --branch -o lcov.info
+      - uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
