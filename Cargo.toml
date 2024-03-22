@@ -1,5 +1,6 @@
 edition = "2021"
 
 [workspace]
-members = ["lib"]
+members = ["lib", "viewer"]
 default-members = ["lib"]
+resolver = "2"
