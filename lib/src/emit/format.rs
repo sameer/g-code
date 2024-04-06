@@ -65,7 +65,7 @@ pub struct FormatOptions {
 }
 
 macro_rules! formatter_core {
-    ($program: ident, $opts: ident, $downstream: ident) => {
+    ($program: expr, $opts: ident, $downstream: ident) => {
         use Token::*;
         let mut preceded_by_newline = true;
         let mut line_number = 0usize;
@@ -151,28 +151,28 @@ macro_rules! formatter_core {
 }
 
 /// Write GCode tokens to an [IoWrite] in a nicely formatted manner
-pub fn format_gcode_io<'a, W>(
-    program: impl Iterator<Item = Token<'a>>,
+pub fn format_gcode_io<'a: 'b, 'b, W>(
+    program: impl IntoIterator<Item = &'b Token<'a>>,
     opts: FormatOptions,
     w: W,
 ) -> std::io::Result<()>
 where
     W: IoWrite,
 {
-    formatter_core!(program, opts, w);
+    formatter_core!(program.into_iter(), opts, w);
     Ok(())
 }
 
 /// Write formatted GCode to a [FmtWrite] in a nicely formatted manner
 pub fn format_gcode_fmt<'a: 'b, 'b, W>(
-    program: impl Iterator<Item = &'b Token<'a>>,
+    program: impl IntoIterator<Item = &'b Token<'a>>,
     opts: FormatOptions,
     w: W,
 ) -> fmt::Result
 where
     W: FmtWrite,
 {
-    formatter_core!(program, opts, w);
+    formatter_core!(program.into_iter(), opts, w);
     Ok(())
 }
 
