@@ -2,7 +2,7 @@
 //!
 //! ```bash
 //! mkdir -p corpus/fuzz_e2e && cp ../tests/* corpus/fuzz_e2e
-//! cargo fuzz run fuzz_e2e -O -- --only_ascii
+//! cargo fuzz run fuzz_e2e -O -- -only_ascii=1
 //! ```
 
 #![no_main]
@@ -20,24 +20,24 @@ fuzz_target!(|data: &[u8]| {
         delimit_with_percent: false,
         newline_before_comment: false,
     };
+    let Ok(gcode) = std::str::from_utf8(data) else {
+        return;
+    };
+    let Ok(file) = file_parser(gcode) else { return };
 
-    if let Ok(gcode) = std::str::from_utf8(data) {
-        if let Ok(file) = file_parser(gcode) {
-            let mut emitted_gcode = String::new();
-            format_gcode_fmt(file.iter_emit_tokens(), opts.clone(), &mut emitted_gcode).unwrap();
+    let mut emitted_gcode = String::new();
+    format_gcode_fmt(file.iter_emit_tokens(), opts.clone(), &mut emitted_gcode).unwrap();
 
-            let reparsed_file = file_parser(&emitted_gcode).unwrap();
-            let mut reemitted_gcode = String::new();
-            format_gcode_fmt(
-                reparsed_file.iter_emit_tokens(),
-                opts.clone(),
-                &mut reemitted_gcode,
-            )
-            .unwrap();
+    let reparsed_file = file_parser(&emitted_gcode).unwrap();
+    let mut reemitted_gcode = String::new();
+    format_gcode_fmt(
+        reparsed_file.iter_emit_tokens(),
+        opts.clone(),
+        &mut reemitted_gcode,
+    )
+    .unwrap();
 
-            assert_eq!(emitted_gcode, reemitted_gcode);
-        }
+    assert_eq!(emitted_gcode, reemitted_gcode);
 
-        let _ = snippet_parser(gcode);
-    }
+    let _ = snippet_parser(gcode);
 });
