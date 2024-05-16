@@ -29,6 +29,14 @@ fuzz_target!(|data: &[u8]| {
     format_gcode_fmt(file.iter_emit_tokens(), opts.clone(), &mut emitted_gcode).unwrap();
 
     let reparsed_file = file_parser(&emitted_gcode).unwrap();
+    for line in reparsed_file.iter() {
+        let validate_res = line.validate_checksum().transpose();
+        assert!(
+            validate_res.is_ok(),
+            "Invalid checksum for {line:#?}, should be {validate_res:?}"
+        );
+    }
+
     let mut reemitted_gcode = String::new();
     format_gcode_fmt(
         reparsed_file.iter_emit_tokens(),
