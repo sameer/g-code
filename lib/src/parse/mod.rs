@@ -4,6 +4,7 @@ use codespan_reporting::diagnostic::{Diagnostic as CodespanDiagnostic, Label};
 mod parser;
 pub use parser::g_code::{file_parser, snippet_parser};
 pub mod ast;
+pub mod compact;
 pub mod token;
 
 pub type ParseError = peg::error::ParseError<peg::str::LineCol>;

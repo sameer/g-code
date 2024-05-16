@@ -1,3 +1,5 @@
+//! Higher-level constructs for g-code emission
+
 use paste::paste;
 
 use super::{Field, Token, Value};

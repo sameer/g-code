@@ -17,11 +17,12 @@ is-it-maintained-open-issues = { repository = "sameer/g-code" }
 maintenance = { status = "passively-maintained" }
 
 [dependencies]
-peg = "0.8"
-rust_decimal = { version = "1.34", default-features = false, features = ["std"] }
 codespan = { version = "0.11", optional = true }
 codespan-reporting = { version = "0.11", optional = true }
+nom = { version = "7.1", optional = true }
 paste = "1"
+peg = "0.8"
+rust_decimal = { version = "1.34", default-features = false, features = ["std"] }
 
 [dependencies.serde]
 default-features = false
@@ -30,7 +31,8 @@ version = "1"
 features = ["derive"]
 
 [features]
-default = ["codespan_helpers"]
+default = ["binary", "codespan_helpers"]
+binary = ["dep:nom"]
 codespan_helpers = ["codespan", "codespan-reporting"]
 
 [dev-dependencies]

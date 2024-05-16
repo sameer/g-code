@@ -1,5 +1,5 @@
-/// Higher-level constructs for g-code emission
 pub mod command;
+pub mod compact;
 mod format;
 mod token;
 

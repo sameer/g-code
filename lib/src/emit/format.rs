@@ -39,11 +39,15 @@ where
 }
 
 impl<W> XorAndPipe<W> {
-    fn reset(&mut self) {
+    pub fn new(downstream: W) -> Self {
+        Self { acc: 0, downstream }
+    }
+
+    pub fn reset(&mut self) {
         self.acc = 0;
     }
 
-    fn checksum(&self) -> u8 {
+    pub fn checksum(&self) -> u8 {
         self.acc
     }
 }
@@ -71,10 +75,7 @@ macro_rules! formatter_core {
         let mut preceded_by_newline = true;
         let mut line_number = 0usize;
 
-        let mut w = XorAndPipe {
-            acc: 0,
-            downstream: $downstream,
-        };
+        let mut w = XorAndPipe::new($downstream);
         if $opts.delimit_with_percent {
             writeln!(w, "%")?;
             w.reset();
@@ -130,6 +131,13 @@ macro_rules! formatter_core {
                     if !preceded_by_newline && $opts.newline_before_comment {
                         line_number += 1;
                         writeln!(w)?;
+                        w.reset();
+                        if $opts.line_numbers {
+                            write!(w, "N{line_number} ")?;
+                        }
+                        if $opts.checksums {
+                            write!(w, "*{}", w.checksum())?;
+                        }
                     }
                     line_number += 1;
                     writeln!(w, ";{inner}")?;
