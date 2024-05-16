@@ -19,7 +19,7 @@ struct MeatpackEncodingWriter<W> {
     meatpack_opts: MeatpackOptions,
     checksum_acc: u8,
     enabled: bool,
-    pending: Option<u8>,
+    pending: Option<(u8, bool)>,
 }
 
 impl<W> MeatpackEncodingWriter<W>
@@ -79,10 +79,10 @@ where
     }
 
     fn write_pending(&mut self) -> std::io::Result<()> {
-        if let Some(pending) = self.pending.take() {
+        if let Some((pending_byte, _)) = self.pending.take() {
             self.write_slice(
                 [
-                    pending,
+                    pending_byte,
                     if self.meatpack_opts.no_spaces {
                         b'\n'
                     } else {
@@ -96,11 +96,24 @@ where
     }
 
     fn checksum(&self) -> u8 {
-        self.checksum_acc
+        let mut checksum = self.checksum_acc;
+        if let Some((pending_byte, include_pending_in_checksum)) = self.pending {
+            if include_pending_in_checksum {
+                if self.enabled {
+                    checksum ^= packable_to_uppercase(pending_byte, self.meatpack_opts.no_spaces);
+                } else {
+                    checksum ^= pending_byte;
+                }
+            }
+        }
+        checksum
     }
 
     fn reset_checksum(&mut self) {
         self.checksum_acc = 0;
+        if let Some((_, ref mut include_pending_in_checksum)) = self.pending {
+            *include_pending_in_checksum = false;
+        }
     }
 
     fn write_fmt(&mut self, arguments: Arguments<'_>) -> std::io::Result<()> {
@@ -109,7 +122,7 @@ where
             self.checksum_acc = input.bytes().fold(self.checksum_acc, |acc, b| acc ^ b);
             self.downstream.write_all(input.as_bytes())?;
         } else if !input.is_empty() {
-            debug_assert!(input.is_ascii(), "Meatpack can only encode ASCII");
+            assert!(input.is_ascii(), "Meatpack can only encode ASCII");
             if self.meatpack_opts.no_spaces {
                 for substr in input.split(' ') {
                     self.write_slice(substr.as_bytes())?;
@@ -128,27 +141,33 @@ where
         }
         let mut pending_slice_opt = None;
         let mut _pending_array_opt = None;
-        if let Some(pending) = self.pending.take() {
+        if let Some((pending, include_pending_in_checksum)) = self.pending.take() {
             _pending_array_opt = Some([pending, slice[0]]);
-            pending_slice_opt = _pending_array_opt.as_ref().map(|array| array.as_slice());
+            pending_slice_opt = _pending_array_opt
+                .as_ref()
+                .map(|array| (array.as_slice(), include_pending_in_checksum));
             slice = &slice[1..];
         }
 
-        for chunk in pending_slice_opt.into_iter().chain(slice.chunks(2)) {
+        for (chunk, include_first_in_checksum) in pending_slice_opt
+            .into_iter()
+            .chain(slice.chunks(2).map(|c| (c, true)))
+        {
             match chunk {
                 [first, second] => {
-                    let first = packable_to_uppercase(*first);
-                    let second = packable_to_uppercase(*second);
-                    self.checksum_acc = [first, second]
-                        .into_iter()
-                        .fold(self.checksum_acc, |acc, b| acc ^ b);
+                    let first = packable_to_uppercase(*first, self.meatpack_opts.no_spaces);
+                    let second = packable_to_uppercase(*second, self.meatpack_opts.no_spaces);
+                    if include_first_in_checksum {
+                        self.checksum_acc ^= first;
+                    }
+                    self.checksum_acc ^= second;
                     write_packed_characters(
                         [first, second],
                         self.meatpack_opts.no_spaces,
                         &mut self.downstream,
                     )?;
                 }
-                [odd] => self.pending = Some(*odd),
+                [odd] => self.pending = Some((*odd, true)),
                 _ => unreachable!(),
             }
         }
@@ -215,11 +234,13 @@ where
             }
             let still_going_to_write_newline = w.will_write_newline();
             w.disable_packing()?;
-            // Degenerate case: odd number of chars became even, oops
-            if will_write_newline && !still_going_to_write_newline {
-                writeln!(w)?;
+            if will_write_newline {
+                // Degenerate case: odd number of chars became even, oops
+                if !still_going_to_write_newline {
+                    writeln!(w)?;
+                }
+                w.reset_checksum();
             }
-            w.reset_checksum();
             preceded_by_newline = will_write_newline;
         } else {
             w.enable_packing()?;
@@ -341,9 +362,9 @@ const fn pack_char(c: u8, no_spaces: bool) -> Option<u8> {
     })
 }
 
-const fn packable_to_uppercase(c: u8) -> u8 {
+const fn packable_to_uppercase(c: u8, no_spaces: bool) -> u8 {
     match c {
-        b'e' => b'E',
+        b'e' if !no_spaces => b'E',
         b'g' => b'G',
         b'x' => b'X',
         other => other,

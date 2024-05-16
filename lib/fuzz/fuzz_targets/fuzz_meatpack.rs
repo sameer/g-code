@@ -19,7 +19,7 @@ use libfuzzer_sys::fuzz_target;
 
 fuzz_target!(|data: &[u8]| {
     let opts = FormatOptions {
-        checksums: false,
+        checksums: true,
         line_numbers: false,
         delimit_with_percent: false,
         newline_before_comment: false,
@@ -42,6 +42,14 @@ fuzz_target!(|data: &[u8]| {
 
     let (_, unpacked_gcode) = meatpacked_to_string(parsed_packed.as_slice()).unwrap();
     let reparsed_file = file_parser(&unpacked_gcode).unwrap();
+
+    for line in reparsed_file.iter() {
+        let validate_res = line.validate_checksum().transpose();
+        assert!(
+            validate_res.is_ok(),
+            "Invalid checksum for {line:#?}, should be {validate_res:?} {unpacked_gcode:?}"
+        );
+    }
 
     let mut reparsed_packed = vec![];
     format_gcode_meatpack(
