@@ -17,6 +17,14 @@ libfuzzer-sys = "0.4"
 path = ".."
 
 [[bin]]
+name = "fuzz_meatpack"
+path = "fuzz_targets/fuzz_meatpack.rs"
+test = false
+doc = false
+bench = false
+
+
+[[bin]]
 name = "fuzz_parser"
 path = "fuzz_targets/fuzz_parser.rs"
 test = false
