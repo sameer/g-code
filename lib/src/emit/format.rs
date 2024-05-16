@@ -97,7 +97,7 @@ macro_rules! formatter_core {
             match token {
                 Field(f) => {
                     if !preceded_by_newline {
-                        if matches!(f.letters.as_ref(), "G" | "M" | "D") {
+                        if matches!(f.letters.as_ref(), "G" | "g" | "M" | "m" | "D" | "d") {
                             if $opts.checksums {
                                 write!(w, "*{}", w.checksum())?;
                             }
