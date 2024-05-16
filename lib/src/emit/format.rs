@@ -205,8 +205,10 @@ impl fmt::Display for Value<'_> {
                 // as rational is if there is a trailing decimal point,
                 // so add it back in.
                 if r.fract().is_zero() {
-                    if let Some(i64_rep) = r.to_i64() {
-                        return write!(f, "{i64_rep}.");
+                    if let Some(unsigned_rep) = r.to_u128() {
+                        return write!(f, "{unsigned_rep}.");
+                    } else if let Some(signed_rep) = r.to_i128() {
+                        return write!(f, "{signed_rep}.");
                     }
                 }
                 write!(f, "{r}")

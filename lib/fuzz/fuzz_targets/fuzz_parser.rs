@@ -2,7 +2,7 @@
 //!
 //! ```bash
 //! mkdir -p corpus/fuzz_parser && cp ../tests/* corpus/fuzz_parser
-//! cargo fuzz run fuzz_parser -O -- --only_ascii
+//! cargo fuzz run fuzz_parser -O
 //! ```
 
 #![no_main]
