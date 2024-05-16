@@ -1,5 +1,6 @@
 use rust_decimal::prelude::ToPrimitive;
 
+use std::borrow::Borrow;
 use std::fmt::{self, Write as FmtWrite};
 use std::io::Write as IoWrite;
 
@@ -80,6 +81,7 @@ macro_rules! formatter_core {
         }
 
         for token in $program {
+            let token = token.borrow();
             if let Token::Field(ref f) = token {
                 // Can't handle user-provided line numbers
                 if preceded_by_newline && f.letters == "N" {
@@ -151,26 +153,26 @@ macro_rules! formatter_core {
 }
 
 /// Write GCode tokens to an [IoWrite] in a nicely formatted manner
-pub fn format_gcode_io<'a: 'b, 'b, W>(
-    program: impl IntoIterator<Item = &'b Token<'a>>,
+pub fn format_gcode_io<'a: 'b, 'b, W, I, T>(
+    program: I,
     opts: FormatOptions,
     w: W,
 ) -> std::io::Result<()>
 where
     W: IoWrite,
+    I: IntoIterator<Item = T>,
+    T: Borrow<Token<'a>> + 'b,
 {
     formatter_core!(program.into_iter(), opts, w);
     Ok(())
 }
 
 /// Write formatted GCode to a [FmtWrite] in a nicely formatted manner
-pub fn format_gcode_fmt<'a: 'b, 'b, W>(
-    program: impl IntoIterator<Item = &'b Token<'a>>,
-    opts: FormatOptions,
-    w: W,
-) -> fmt::Result
+pub fn format_gcode_fmt<'a: 'b, 'b, W, I, T>(program: I, opts: FormatOptions, w: W) -> fmt::Result
 where
     W: FmtWrite,
+    I: IntoIterator<Item = T>,
+    T: Borrow<Token<'a>> + 'b,
 {
     formatter_core!(program.into_iter(), opts, w);
     Ok(())
