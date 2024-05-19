@@ -1,0 +1,46 @@
+[package]
+name = "icewrap-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[workspace]
+members = ["."]
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.icewrap]
+path = ".."
+features = ["std"]
+
+[[bin]]
+name = "fuzz_all_decoders"
+path = "fuzz_targets/fuzz_all_decoders.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_all_encoders"
+path = "fuzz_targets/fuzz_all_encoders.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_single_e2e"
+path = "fuzz_targets/fuzz_single_e2e.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_single_encoder"
+path = "fuzz_targets/fuzz_single_encoder.rs"
+test = false
+doc = false
+bench = false

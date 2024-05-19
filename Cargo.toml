@@ -1,5 +1,4 @@
-edition = "2021"
-
 [workspace]
-members = ["lib"]
-default-members = ["lib"]
+members = ["lib", "icewrap"]
+default-members = ["lib", "icewrap"]
+resolver = "2"

@@ -1,0 +1,23 @@
+[package]
+name = "icewrap"
+version = "0.1.0"
+authors = ["Sameer Puri <crates@purisa.me>"]
+edition = "2021"
+keywords = ["heatshrink", "no_std", "no-std", "embedded"]
+categories = ["no-std", "encoding", "compression", "embedded"]
+repository = "https://github.com/sameer/g-code"
+documentation = "https://docs.rs/icewrap"
+license = "MIT OR Apache-2.0"
+readme = "../README.md"
+description = "Port of Heatshrink to Rust"
+
+
+[dependencies]
+nom = "7.1.3"
+paste = "1.0.15"
+
+[features]
+"std" = []
+
+[dev-dependencies]
+lazy_static = "1.4.0"
