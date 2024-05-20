@@ -13,3 +13,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Check
         run: cargo check -p icewrap --all-features
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+      - name: Test
+        run: cargo t -p icewrap -r --all-features
