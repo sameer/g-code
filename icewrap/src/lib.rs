@@ -27,7 +27,7 @@ mod tests {
     fn test_all_end_to_end_with_big_file() {
         // let data = include_str!("./encode.rs");
         let data = include_bytes!(
-            "../fuzz/artifacts/fuzz_single_e2e/crash-c58fa467dc18f85dce08996eabb8c55f66febd89"
+            "../tests/input/crash-c58fa467dc18f85dce08996eabb8c55f66febd89"
         )
         .as_slice();
 
