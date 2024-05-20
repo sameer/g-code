@@ -552,30 +552,83 @@ impl<
                 pos = index[Into::<usize>::into(pos)];
             }
         } else {
+            // This "hashing" is really just summing to avoid running the inner counting logic if possible
+            //
+            // It should really be some kind of cyclic polynomial hash that can handle
+            // adds to the end, removes from the beginning, and shifts to the right
+            let mut needle_hash: u16 = 0;
+            let mut search_hash: u16 = 0;
+
             for pos in (start..end).rev() {
                 let slice_at_pos = &self.buffer[pos.into()..];
+                #[cfg(not(fuzzing))]
+                debug_assert_eq!(
+                    needle_hash,
+                    needle[..best_match_len.into()]
+                        .iter()
+                        .copied()
+                        .fold(0u16, |acc, x| acc.wrapping_add(x.into()))
+                );
+                #[cfg(not(fuzzing))]
+                debug_assert_eq!(
+                    search_hash,
+                    slice_at_pos[..best_match_len.into()]
+                        .iter()
+                        .copied()
+                        .fold(0u16, |acc, x| acc.wrapping_add(x.into())),
+                );
 
-                // Optimization: this can only yield a new best if the bytes at `best_match_len` are equal.
-                if slice_at_pos[Into::<usize>::into(best_match_len)]
-                    == needle[Into::<usize>::into(best_match_len)]
+                // Optimization: this can only yield a new best if
+                // - Search hash equals the needle hash
+                // - The bytes at `best_match_len` are equal
+                if search_hash == needle_hash
+                    && slice_at_pos[Into::<usize>::into(best_match_len)]
+                        == needle[Into::<usize>::into(best_match_len)]
                 {
-                    let len: u16 = slice_at_pos
+                    let confirmed_len: u16 = slice_at_pos
                         .iter()
                         .copied()
                         .zip(needle.iter().copied())
-                        .take(maximum_len.into())
+                        .take(best_match_len.into())
                         .take_while(|(x, y)| *x == *y)
                         .count()
                         .try_into()
                         .unwrap();
+                    // (implicitly know it is better than the prev best, based on above, but don't include it in the check here)
+                    let as_good_as_prev_best = confirmed_len == best_match_len;
+                    if as_good_as_prev_best {
+                        let mut match_len: u16 = best_match_len;
 
-                    if len > best_match_len {
-                        best_match_len = len;
+                        for i in best_match_len..maximum_len {
+                            let i: usize = i.into();
+                            if slice_at_pos[i] == needle[i] {
+                                // add data to end of hash
+                                search_hash =
+                                    search_hash.wrapping_add(Into::<u16>::into(slice_at_pos[i]));
+                                needle_hash =
+                                    needle_hash.wrapping_add(Into::<u16>::into(needle[i]));
+                                match_len += 1;
+                            } else {
+                                break;
+                            }
+                        }
+
                         best_match_index = Some(pos);
-                        if len == maximum_len {
+                        best_match_len = match_len;
+                        if match_len == maximum_len {
                             break;
                         }
                     }
+                }
+
+                if best_match_len > 0 && pos > start {
+                    // shift search hash to the right
+                    search_hash = search_hash.wrapping_sub(Into::<u16>::into(
+                        slice_at_pos[Into::<usize>::into(best_match_len - 1)],
+                    ));
+                    // add at the beginning
+                    search_hash = search_hash
+                        .wrapping_add(Into::<u16>::into(self.buffer[Into::<usize>::into(pos - 1)]));
                 }
             }
         }
