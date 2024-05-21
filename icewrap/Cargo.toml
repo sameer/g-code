@@ -1,6 +1,6 @@
 [package]
 name = "icewrap"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Sameer Puri <crates@purisa.me>"]
 edition = "2021"
 keywords = ["heatshrink", "no_std", "no-std", "embedded"]
@@ -10,7 +10,6 @@ documentation = "https://docs.rs/icewrap"
 license = "MIT OR Apache-2.0"
 readme = "../README.md"
 description = "Port of Heatshrink to Rust"
-
 
 [dependencies]
 paste = "1.0.15"
