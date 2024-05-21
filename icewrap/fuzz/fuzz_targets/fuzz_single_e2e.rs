@@ -18,7 +18,6 @@ fuzz_target!(|data: &[u8]| {
         let mut dec_buf = vec![];
         let mut pull_decoder = PullDecoder::new(decoder_12_4(), enc_buf.as_slice());
         pull_decoder.read_to_end(&mut dec_buf).unwrap();
-        pull_decoder.finish().read_to_end(&mut dec_buf).unwrap();
 
         let equal = data
             .iter()

@@ -10,6 +10,5 @@ fuzz_target!(|data: &[u8]| {
 
         let mut buf = vec![];
         pull.read_to_end(&mut buf).unwrap();
-        pull.finish().read_to_end(&mut buf).unwrap();
     }
 });

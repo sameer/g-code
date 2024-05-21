@@ -168,12 +168,8 @@ impl core::fmt::Display for SinkError {
 #[derive(Debug)]
 pub enum PollResult {
     /// Encoded byte of data is ready.
-    ///
-    /// [Polling](Encoder::poll) again may return [PollResult::Pending] or [PollResult::Ready].
     Ready(u8),
     /// Encoder has additional work to do.
-    ///
-    /// [Polling](Encoder::poll) again may return [PollResult::Pending] or [PollResult::Ready].
     Pending,
     /// Encoder needs more data.
     ///
@@ -642,6 +638,18 @@ impl<
     }
 }
 
+impl<
+        const WINDOW: u8,
+        const WINDOW_BUF_SIZE: usize,
+        const LOOKAHEAD: u8,
+        const USE_INDEX: bool,
+    > Default for Encoder<WINDOW, WINDOW_BUF_SIZE, LOOKAHEAD, USE_INDEX>
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 macro_rules! create_encoders {
     (
         $(
@@ -676,6 +684,13 @@ macro_rules! create_encoders {
         )*
 
         paste::paste! {
+            /// Get the builder for an encoder at runtime
+            ///
+            /// This will return [None] if the parameters do not adhere to these constraints:
+            ///
+            /// - window size in the range `[MIN_WINDOW_BITS]..=[MAX_WINDOW_BITS]`
+            /// - lookahead in the range `[MIN_LOOKAHEAD_BITS]..=(window - 1)`
+            /// - indexed = true/false
             #[cfg(feature = "std")]
             pub fn dyn_encoder_builder(window: u8, lookahead: u8, indexed: bool) -> Option<Box<dyn Fn() -> Box<dyn EncoderTrait>>> {
                 match (window, lookahead, indexed) {

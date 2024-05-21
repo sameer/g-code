@@ -4,6 +4,7 @@ use crate::consts::{
     LITERAL_MARKER, MAX_WINDOW_BITS, MIN_LOOKAHEAD_BITS, MIN_WINDOW_BITS, U8_BITS,
 };
 
+/// Internal state of a [Decoder]
 #[repr(u8)]
 #[derive(Debug, Clone)]
 enum State {
@@ -29,23 +30,46 @@ pub struct Decoder<const WINDOW: u8, const LOOKAHEAD: u8, const BUFFER_SIZE: usi
     buffer: [u8; BUFFER_SIZE],
 }
 
+/// Error type for [Decoder::load] indicating that the internal buffer is full
 #[derive(Debug, Clone, Copy)]
 pub struct Full;
 
+impl core::fmt::Display for Full {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str("decoder must be polled before it can load more data")
+    }
+}
+
+/// Result of calling [Decoder::poll]
 pub enum PollResult {
+    /// Decoded byte of data is ready.
     Ready(u8),
+    /// Decoder has additional work to do.
     Pending,
+    /// Decoder needs more data.
+    ///
+    /// [Polling](Decoder::poll) again will do nothing until data is [loaded](Decoder::load).
     NeedsLoad,
 }
 
 pub trait DecoderTrait {
+    /// Convenience function for identifying a dyn [Decoder].
     fn window_bits(&self) -> u8;
+    /// Convenience function for identifying a dyn [Decoder].
     fn lookahead_bits(&self) -> u8;
 
+    /// Offer data to decode. Returns [Full] if the internal buffer is full.
+    ///
+    /// If the previous [poll](Decoder::poll) result was [PollResult::NeedsLoad], this will not fail.
     fn load(&mut self, byte: u8) -> Result<(), Full>;
+    //// Advance internal state of the decoder, potentially yielding decoded data.
     fn poll(&mut self) -> PollResult;
-    fn reset(&mut self);
+
+    /// Indicates whether decoding can stop now, or if there is pending data.
     fn is_finished(&self) -> bool;
+
+    //// Reset decoder to its initial state so it is ready to decode new data from scratch.
+    fn reset(&mut self);
 }
 
 impl<D: DecoderTrait> DecoderTrait for &mut D {
@@ -141,6 +165,14 @@ impl<const WINDOW: u8, const LOOKAHEAD: u8, const BUFFER_SIZE: usize>
         }
 
         Some(acc)
+    }
+}
+
+impl<const WINDOW: u8, const LOOKAHEAD: u8, const BUFFER_SIZE: usize> Default
+    for Decoder<WINDOW, LOOKAHEAD, BUFFER_SIZE>
+{
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -303,6 +335,12 @@ macro_rules! create_decoders {
         )*
 
         paste::paste! {
+            /// Get the builder for a decoder at runtime
+            ///
+            /// This will return [None] if the parameters do not adhere to these constraints:
+            ///
+            /// - window size in the range [MIN_WINDOW_BITS]..=[MAX_WINDOW_BITS]
+            /// - lookahead in the range [MIN_LOOKAHEAD_BITS]..=(window - 1)
             #[cfg(feature = "std")]
             pub fn dyn_decoder_builder(window: u8, lookahead: u8) -> Option<Box<dyn Fn() -> Box<dyn DecoderTrait>>> {
                 match (window, lookahead) {
@@ -438,6 +476,9 @@ mod std_support {
         }
     }
 
+    impl std::error::Error for Full {}
+
+    /// [Read](std::io::Read) wrapper for a decoder
     pub struct PullDecoder<D: DecoderTrait, R: Read> {
         decoder: D,
         reader: R,
@@ -446,12 +487,6 @@ mod std_support {
     impl<D: DecoderTrait, R: Read> PullDecoder<D, R> {
         pub const fn new(decoder: D, reader: R) -> Self {
             Self { decoder, reader }
-        }
-
-        pub fn finish(self) -> FinishingPullDecoder<D> {
-            FinishingPullDecoder {
-                decoder: self.decoder,
-            }
         }
     }
 
@@ -484,62 +519,15 @@ mod std_support {
         }
     }
 
-    pub struct FinishingPullDecoder<D: DecoderTrait> {
-        decoder: D,
-    }
-
-    impl<D: DecoderTrait> Read for FinishingPullDecoder<D> {
-        fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-            if self.decoder.is_finished() {
-                return Ok(0);
-            };
-
-            let mut read = 0;
-            let mut it = buf.iter_mut().peekable();
-
-            loop {
-                if it.peek().is_none() {
-                    break Ok(read);
-                }
-                match self.decoder.poll() {
-                    PollResult::Ready(byte) => {
-                        *it.next().unwrap() = byte;
-                        read += 1;
-                    }
-                    PollResult::Pending => {}
-                    PollResult::NeedsLoad => {
-                        debug_assert!(self.decoder.is_finished());
-                        break Ok(read);
-                    }
-                }
-            }
-        }
-    }
-
     pub struct PushDecoder<D: DecoderTrait, W: Write> {
         decoder: D,
         writer: W,
     }
 
+    /// [Write](std::io::Write) wrapper for an encoder
     impl<D: DecoderTrait, W: Write> PushDecoder<D, W> {
         pub const fn new(decoder: D, writer: W) -> Self {
             Self { decoder, writer }
-        }
-
-        pub fn finish(mut self) -> std::io::Result<usize> {
-            let mut written = 0;
-            if !self.decoder.is_finished() {
-                loop {
-                    match self.decoder.poll() {
-                        PollResult::Ready(byte) => {
-                            written += 1;
-                            self.writer.write_all(&[byte])?;
-                        }
-                        PollResult::Pending | PollResult::NeedsLoad => {}
-                    }
-                }
-            }
-            Ok(written)
         }
     }
 
@@ -550,7 +538,12 @@ mod std_support {
             loop {
                 match self.decoder.poll() {
                     PollResult::Ready(byte) => {
-                        self.writer.write_all(&[byte])?;
+                        if self.writer.write(&[byte])? == 0 {
+                            break Err(std::io::Error::new(
+                                std::io::ErrorKind::WriteZero,
+                                "failed to write ready byte",
+                            ));
+                        }
                     }
                     PollResult::Pending => {}
                     PollResult::NeedsLoad => match it.next() {
@@ -569,7 +562,12 @@ mod std_support {
         fn flush(&mut self) -> std::io::Result<()> {
             match self.decoder.poll() {
                 PollResult::Ready(byte) => {
-                    self.writer.write_all(&[byte])?;
+                    if self.writer.write(&[byte])? == 0 {
+                        return Err(std::io::Error::new(
+                            std::io::ErrorKind::WriteZero,
+                            "failed to flush ready byte",
+                        ));
+                    }
                 }
                 PollResult::Pending | PollResult::NeedsLoad => {}
             }
@@ -612,7 +610,6 @@ mod tests {
             let mut decoder = PullDecoder::new(decoder, data);
 
             decoder.read_to_end(&mut buf).unwrap();
-            decoder.finish().read_to_end(&mut buf).unwrap();
 
             assert_eq!(buf, expected);
         }
