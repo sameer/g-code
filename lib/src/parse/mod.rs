@@ -232,6 +232,12 @@ N2 M107*39"#;
         }
 
         #[test]
+        fn letter_is_lexed() {
+            let gcode = "A";
+            assert_eq!(letter(gcode), Ok(gcode),)
+        }
+
+        #[test]
         fn letters_are_lexed() {
             let gcode = "ABCD";
             assert_eq!(letters(gcode), Ok(gcode),)

@@ -83,7 +83,7 @@ mod tests {
     use std::io::Read;
 
     #[test]
-    #[cfg_attr(debug, ignore = "Test takes too long for debug profile")]
+    #[cfg_attr(debug_assertions, ignore = "Test takes too long for debug profile")]
     fn test_all_end_to_end_with_big_file() {
         // let data = include_str!("./encode.rs");
         let data = include_bytes!("../tests/input/crash-c58fa467dc18f85dce08996eabb8c55f66febd89")

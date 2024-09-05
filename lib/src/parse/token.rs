@@ -28,6 +28,25 @@ impl<'input> Spanned for Field<'input> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Flag<'input> {
+    pub(crate) letter: &'input str,
+    pub(crate) span: Span,
+}
+
+impl<'input> Flag<'input> {
+    /// Iterate over [u8] in a [Field].
+    pub fn iter_bytes(&'input self) -> impl Iterator<Item = &'input u8> {
+        self.letter.as_bytes().iter()
+    }
+}
+
+impl<'input> Spanned for Flag<'input> {
+    fn span(&self) -> Span {
+        self.span
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value<'input> {
     /// A real number g-code value.
     ///
@@ -156,6 +175,7 @@ impl<'input> Spanned for InlineComment<'input> {
 /// An internal structure used to make writing the [peg] parser easier.
 pub struct LineComponent<'input> {
     pub(crate) field: Option<Field<'input>>,
+    pub(crate) flag: Option<Flag<'input>>,
     pub(crate) whitespace: Option<Whitespace<'input>>,
     pub(crate) inline_comment: Option<InlineComment<'input>>,
 }
@@ -165,6 +185,7 @@ impl<'input> LineComponent<'input> {
         self.field
             .iter()
             .flat_map(|f| f.iter_bytes())
+            .chain(self.flag.iter().flat_map(|f| f.iter_bytes()))
             .chain(self.whitespace.iter().flat_map(|w| w.iter_bytes()))
             .chain(self.inline_comment.iter().flat_map(|i| i.iter_bytes()))
     }

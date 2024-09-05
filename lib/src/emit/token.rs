@@ -4,8 +4,8 @@ use rust_decimal::Decimal;
 use std::borrow::Cow;
 
 use crate::parse::token::{
-    Comment as ParsedComment, Field as ParsedField, InlineComment as ParsedInlineComment,
-    Value as ParsedValue,
+    Comment as ParsedComment, Field as ParsedField, Flag as ParsedFlag,
+    InlineComment as ParsedInlineComment, Value as ParsedValue,
 };
 
 #[derive(Clone, PartialEq, Debug)]
@@ -14,6 +14,7 @@ use crate::parse::token::{
 /// Any strings here are expected to have escaped characters, see <https://www.reprap.org/wiki/G-code#Quoted_strings>
 pub enum Token<'a> {
     Field(Field<'a>),
+    Flag(Flag<'a>),
     Comment {
         is_inline: bool,
         inner: Cow<'a, str>,
@@ -23,6 +24,12 @@ pub enum Token<'a> {
 impl<'input> From<&ParsedField<'input>> for Token<'input> {
     fn from(field: &ParsedField<'input>) -> Self {
         Self::Field(field.into())
+    }
+}
+
+impl<'input> From<&ParsedFlag<'input>> for Token<'input> {
+    fn from(flag: &ParsedFlag<'input>) -> Self {
+        Self::Flag(flag.into())
     }
 }
 
@@ -83,6 +90,19 @@ impl<'a> Field<'a> {
         Field {
             letters: self.letters.into_owned().into(),
             value: self.value.into_owned(),
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct Flag<'a> {
+    pub letter: Cow<'a, str>,
+}
+
+impl<'input> From<&ParsedFlag<'input>> for Flag<'input> {
+    fn from(flag: &ParsedFlag<'input>) -> Self {
+        Self {
+            letter: flag.letter.into(),
         }
     }
 }

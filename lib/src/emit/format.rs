@@ -4,6 +4,7 @@ use std::borrow::Borrow;
 use std::fmt::{self, Write as FmtWrite};
 use std::io::Write as IoWrite;
 
+use super::token::Flag;
 use super::{Field, Token, Value};
 
 #[cfg(feature = "serde")]
@@ -114,6 +115,12 @@ macro_rules! formatter_core {
                     write!(w, "{f}")?;
                     preceded_by_newline = false;
                 }
+                Flag(f) => {
+                    if !preceded_by_newline {
+                        write!(w, " ")?;
+                    }
+                    write!(w, "{f}")?;
+                }
                 Comment {
                     is_inline: true,
                     inner,
@@ -191,6 +198,7 @@ impl fmt::Display for Token<'_> {
         use Token::*;
         match self {
             Field(field) => write!(f, "{field}"),
+            Flag(flag) => write!(f, "{flag}"),
             Comment { is_inline, inner } => match is_inline {
                 true => write!(f, "({inner})"),
                 false => write!(f, ";{inner}"),
@@ -202,6 +210,12 @@ impl fmt::Display for Token<'_> {
 impl<'a> fmt::Display for Field<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}{}", self.letters, self.value)
+    }
+}
+
+impl<'a> fmt::Display for Flag<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.letter)
     }
 }
 

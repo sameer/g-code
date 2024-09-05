@@ -43,6 +43,12 @@ impl From<Span> for std::ops::Range<usize> {
     }
 }
 
+impl<T: Spanned> Spanned for &T {
+    fn span(&self) -> Span {
+        <T as Spanned>::span(*self)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Representation of a sequence of g-code logically organized as a file.
 /// This may also be referred to as a program.
@@ -63,9 +69,14 @@ impl<'input> File<'input> {
             .chain(self.last_line.iter())
     }
 
-    /// Iterating by [Line] in a file.
+    /// Iterating by [Field] in a file.
     pub fn iter_fields(&self) -> impl Iterator<Item = &Field<'input>> {
         self.iter().flat_map(Line::iter_fields)
+    }
+
+    /// Iterating by [Flag] in a file.
+    pub fn iter_flags(&self) -> impl Iterator<Item = &Flag<'input>> {
+        self.iter().flat_map(Line::iter_flags)
     }
 
     /// Iterate by [InlineComment] in a file.
@@ -97,6 +108,7 @@ impl<'input> File<'input> {
     pub fn iter_emit_tokens<'a>(&'a self) -> impl Iterator<Item = Token<'input>> + 'a {
         TokenizingIterator {
             field_iterator: self.iter_fields().peekable(),
+            flag_iterator: self.iter_flags().peekable(),
             inline_comment_iterator: self.iter_inline_comments().peekable(),
             comment_iterator: self.iter_comments().peekable(),
         }
@@ -130,9 +142,14 @@ impl<'input> Snippet<'input> {
             .chain(self.last_line.iter())
     }
 
-    /// Iterating by [Line] in a snippet.
+    /// Iterating by [Field] in a snippet.
     pub fn iter_fields(&self) -> impl Iterator<Item = &Field<'input>> {
         self.iter().flat_map(Line::iter_fields)
+    }
+
+    /// Iterating by [Flag] in a snippet.
+    pub fn iter_flags(&self) -> impl Iterator<Item = &Flag<'input>> {
+        self.iter().flat_map(Line::iter_flags)
     }
 
     /// Iterate by [InlineComment] in a snippet.
@@ -164,6 +181,7 @@ impl<'input> Snippet<'input> {
     pub fn iter_emit_tokens<'a>(&'a self) -> impl Iterator<Item = Token<'input>> + 'a {
         TokenizingIterator {
             field_iterator: self.iter_fields().peekable(),
+            flag_iterator: self.iter_flags().peekable(),
             inline_comment_iterator: self.iter_inline_comments().peekable(),
             comment_iterator: self.iter_comments().peekable(),
         }
@@ -196,6 +214,11 @@ impl<'input> Line<'input> {
         self.line_components.iter().filter_map(|c| c.field.as_ref())
     }
 
+    /// Iterate by [Flag] in a line of g-code.
+    pub fn iter_flags(&self) -> impl Iterator<Item = &Flag<'input>> {
+        self.line_components.iter().filter_map(|c| c.flag.as_ref())
+    }
+
     /// Iterate by [InlineComment] in a line of g-code.
     pub fn iter_inline_comments(&self) -> impl Iterator<Item = &InlineComment<'input>> {
         self.line_components
@@ -214,6 +237,7 @@ impl<'input> Line<'input> {
     pub fn iter_emit_tokens<'a>(&'a self) -> impl Iterator<Item = Token<'input>> + 'a {
         TokenizingIterator {
             field_iterator: self.iter_fields().peekable(),
+            flag_iterator: self.iter_flags().peekable(),
             inline_comment_iterator: self.iter_inline_comments().peekable(),
             comment_iterator: self.comment.iter().peekable(),
         }
@@ -258,20 +282,23 @@ impl<'input> Line<'input> {
     }
 }
 
-struct TokenizingIterator<'a, 'input: 'a, F, IC, C>
+struct TokenizingIterator<'a, 'input: 'a, F, FL, IC, C>
 where
     F: Iterator<Item = &'a Field<'input>>,
+    FL: Iterator<Item = &'a Flag<'input>>,
     IC: Iterator<Item = &'a InlineComment<'input>>,
     C: Iterator<Item = &'a Comment<'input>>,
 {
     field_iterator: Peekable<F>,
+    flag_iterator: Peekable<FL>,
     inline_comment_iterator: Peekable<IC>,
     comment_iterator: Peekable<C>,
 }
 
-impl<'a, 'input: 'a, F, IC, C> Iterator for TokenizingIterator<'a, 'input, F, IC, C>
+impl<'a, 'input: 'a, F, FL, IC, C> Iterator for TokenizingIterator<'a, 'input, F, FL, IC, C>
 where
     F: Iterator<Item = &'a Field<'input>>,
+    FL: Iterator<Item = &'a Flag<'input>>,
     IC: Iterator<Item = &'a InlineComment<'input>>,
     C: Iterator<Item = &'a Comment<'input>>,
 {
@@ -279,9 +306,10 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         let spans = [
-            self.field_iterator.peek().map(|x| x.span()),
-            self.inline_comment_iterator.peek().map(|x| x.span()),
-            self.comment_iterator.peek().map(|x| x.span()),
+            self.field_iterator.peek().map(Spanned::span),
+            self.flag_iterator.peek().map(Spanned::span),
+            self.inline_comment_iterator.peek().map(Spanned::span),
+            self.comment_iterator.peek().map(Spanned::span),
         ];
         if let Some((i, _)) = spans
             .iter()
@@ -291,8 +319,9 @@ where
         {
             match i {
                 0 => Some(Token::from(self.field_iterator.next().unwrap())),
-                1 => Some(Token::from(self.inline_comment_iterator.next().unwrap())),
-                2 => Some(Token::from(self.comment_iterator.next().unwrap())),
+                1 => Some(Token::from(self.flag_iterator.next().unwrap())),
+                2 => Some(Token::from(self.inline_comment_iterator.next().unwrap())),
+                3 => Some(Token::from(self.comment_iterator.next().unwrap())),
                 _ => unreachable!(),
             }
         } else {

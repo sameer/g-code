@@ -63,6 +63,7 @@ peg::parser! {
             }
         };
         pub rule integer() -> &'input str = quiet! { $(['0'..='9']+) } / expected!("integer");
+        pub rule letter() -> &'input str = quiet! { $(['a'..='z' | 'A'..='Z']) } / expected!("letter");
         pub rule letters() -> &'input str = quiet! { $(['a'..='z' | 'A'..='Z']+) } / expected!("letters");
         pub rule whitespace() -> Whitespace<'input> = pos:position!() inner:(quiet! { $([' ' | '\t' ]+) } / expected!("whitespace")) {
             Whitespace {
@@ -71,14 +72,14 @@ peg::parser! {
             }
         };
 
-        pub rule checksum() -> Checksum = left:position!() star:star() checksum:integer() right:position!() {?
+        rule checksum() -> Checksum = left:position!() star:star() checksum:integer() right:position!() {?
             Ok(Checksum {
                 inner: checksum.parse::<u8>().map_err(|e| "checksum is not an unsigned byte")?,
                 span: Span(left, right)
             })
         };
 
-        pub rule field() -> Field<'input>
+        rule field() -> Field<'input>
             = left:position!() letters:letters() neg:minus()? lhs:integer()  dot:dot() rhs:integer()? right:position!() {?
                 let lhs_start = left + letters.len() + neg.as_ref().map(|_| 1).unwrap_or(0);
                 let lhs_end = lhs_start + lhs.len();
@@ -146,8 +147,13 @@ peg::parser! {
                 }
             };
 
+        pub rule flag() -> Flag<'input> = left:position!() letter:letter() right:position!() {
+            Flag { letter, span: Span(left, right) }
+        };
+
         rule line_component() -> LineComponent<'input>
             = field:field() { LineComponent { field: Some(field), ..Default::default() } }
+            / flag:flag() { LineComponent { flag: Some(flag), ..Default::default() }}
             / whitespace:whitespace() { LineComponent { whitespace: Some(whitespace), ..Default::default() } }
             / inline_comment:inline_comment() { LineComponent { inline_comment: Some(inline_comment), ..Default::default() } };
 

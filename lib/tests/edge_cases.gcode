@@ -4,5 +4,7 @@ G0X0.1
 G0X0.0
 G0X0.
 G0X1.0000000
+G28 X Y Z
+M1 Hello World
 ()
 ((this is a nested comment))

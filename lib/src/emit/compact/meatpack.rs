@@ -3,7 +3,7 @@
 //! <https://github.com/scottmudge/OctoPrint-MeatPack/>
 
 use crate::{
-    emit::{Field, FormatOptions, Token, Value},
+    emit::{token::Flag, Field, FormatOptions, Token, Value},
     parse::compact::meatpack::*,
 };
 
@@ -217,6 +217,7 @@ where
                         Value::Rational(_) | Value::Float(_) | Value::Integer(_) => false,
                     }
             }
+            Token::Flag(Flag { letter }) => !letter.is_ascii(),
             Token::Comment { .. } => true,
         };
 
@@ -270,6 +271,12 @@ where
 
                 write!(w, "{f}")?;
                 preceded_by_newline = false;
+            }
+            Token::Flag(f) => {
+                if !preceded_by_newline {
+                    write!(w, " ")?;
+                }
+                write!(w, "{f}")?;
             }
             Token::Comment {
                 is_inline: true,
