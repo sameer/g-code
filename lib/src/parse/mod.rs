@@ -4,6 +4,7 @@ use codespan_reporting::diagnostic::{Diagnostic as CodespanDiagnostic, Label};
 mod parser;
 pub use parser::g_code::{file_parser, snippet_parser};
 pub mod ast;
+#[cfg(feature = "binary")]
 pub mod compact;
 pub mod token;
 

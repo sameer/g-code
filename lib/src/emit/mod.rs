@@ -1,4 +1,5 @@
 pub mod command;
+#[cfg(feature = "binary")]
 pub mod compact;
 mod format;
 mod token;
