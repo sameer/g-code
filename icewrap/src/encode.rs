@@ -695,8 +695,8 @@ macro_rules! create_encoders {
             pub fn dyn_encoder_builder(window: u8, lookahead: u8, indexed: bool) -> Option<Box<dyn Fn() -> Box<dyn EncoderTrait>>> {
                 match (window, lookahead, indexed) {
                     $(
-                        ($window, $lookahead, true) => Some(Box::new(|| Box::new([<encoder _ $window _ $lookahead>]()))),
-                        ($window, $lookahead, false) => Some(Box::new(|| Box::new([<encoder _ $window _ $lookahead _indexed>]()))),
+                        ($window, $lookahead, true) => Some(Box::new(|| Box::new([<encoder _ $window _ $lookahead _indexed>]()))),
+                        ($window, $lookahead, false) => Some(Box::new(|| Box::new([<encoder _ $window _ $lookahead>]()))),
                     )*
                     _other => None,
                 }
