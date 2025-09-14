@@ -5,10 +5,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use nom::{
-    bytes::complete::tag,
-    combinator::{cond, flat_map, iterator},
-    number::complete::le_u8,
-    Compare, IResult, Input, Parser,
+    bytes::complete::tag, combinator::{cond, flat_map, iterator}, error::{ErrorKind, FromExternalError}, number::complete::le_u8, Compare, IResult, Input, Parser
 };
 
 /// Present when two characters will not be found by [unpack_character]
@@ -48,10 +45,26 @@ where
     I: Input<Item = u8> + for<'a> Compare<&'a [u8]>,
 {
     let state = Rc::new(RefCell::new(MeatpackState::default()));
-    let mut parser = iterator(input, |input| decode_next(state.clone()).parse(input));
+    let mut parser = iterator(input, decode_next(state.clone()));
     let it = &mut parser;
-    let acc = String::from_utf8(it.flatten().collect::<Vec<u8>>()).unwrap();
-    parser.finish().map(|(input, ())| (input, acc))
+    let bytes = it.fold(vec![], |mut acc, yielded| {
+        match yielded {
+            YieldedChars::None => {}
+            YieldedChars::One(one) => acc.push(one),
+            YieldedChars::Two(two) => acc.extend_from_slice(&two),
+        };
+        acc
+    });
+    let (remaining, ()) = parser.finish()?;
+
+    match String::from_utf8(bytes) {
+        Ok(string) => Ok((remaining, string)),
+        Err(err) => Err(nom::Err::Error(nom::error::Error::from_external_error(
+            remaining,
+            ErrorKind::Char,
+            err,
+        ))),
+    }
 }
 
 /// Used to make the [nom] parser stateful
@@ -61,10 +74,16 @@ struct MeatpackState {
     no_spaces: bool,
 }
 
+enum YieldedChars {
+    None,
+    One(u8),
+    Two([u8; 2]),
+}
+
 /// Decode the next command or character pair
 fn decode_next<I>(
     state: Rc<RefCell<MeatpackState>>,
-) -> impl Parser<I, Output = Vec<u8>, Error = nom::error::Error<I>>
+) -> impl Parser<I, Output = YieldedChars, Error = nom::error::Error<I>>
 where
     I: Input<Item = u8> + for<'a> Compare<&'a [u8]>,
 {
@@ -82,22 +101,22 @@ where
                 // Not a known command? Swallow bytes and do nothing
                 _other => {}
             }
-            vec![]
+            YieldedChars::None
         })
-        .or(decode_character_pair(state_clone).map(|pair| pair.to_vec()))
+        .or(decode_character_pair(state_clone))
 }
 
 /// Decode the next pair of characters
 fn decode_character_pair<I>(
     state: Rc<RefCell<MeatpackState>>,
-) -> impl Parser<I, Output = Vec<u8>, Error = nom::error::Error<I>>
+) -> impl Parser<I, Output = YieldedChars, Error = nom::error::Error<I>>
 where
     I: Input<Item = u8> + for<'a> Compare<&'a [u8]>,
 {
     let both_unpacked_parser = tag(MP_BOTH_UNPACKABLE_HEADER.as_slice())
         .and(le_u8)
         .and(le_u8)
-        .map(|((_tag, first), second)| [first, second].to_vec());
+        .map(|((_tag, first), second)| YieldedChars::Two([first, second]));
 
     let packed_parser = flat_map(le_u8, move |byte: u8| {
         let state = state.borrow();
@@ -118,10 +137,10 @@ where
         .map(move |next_byte| {
             let next_char = next_byte.map(|b| b);
             match (first_unpacked, second_unpacked) {
-                (None, None) => [byte].to_vec(),
-                (None, Some(second)) => [next_char.unwrap(), second].to_vec(),
-                (Some(first), None) => [first, next_char.unwrap()].to_vec(),
-                (Some(first), Some(second)) => [first, second].to_vec(),
+                (None, None) => YieldedChars::One(byte),
+                (None, Some(second)) => YieldedChars::Two([next_char.unwrap(), second]),
+                (Some(first), None) => YieldedChars::Two([first, next_char.unwrap()]),
+                (Some(first), Some(second)) => YieldedChars::Two([first, second]),
             }
         })
     });
