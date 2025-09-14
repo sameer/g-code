@@ -2,13 +2,13 @@
 //!
 //! <https://github.com/scottmudge/OctoPrint-MeatPack/>
 
-use std::{cell::RefCell, ops::RangeFrom, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
 use nom::{
     bytes::complete::tag,
     combinator::{cond, flat_map, iterator},
     number::complete::le_u8,
-    Compare, IResult, InputIter, InputLength, InputTake, Parser, Slice,
+    Compare, IResult, Input, Parser,
 };
 
 /// Present when two characters will not be found by [unpack_character]
@@ -45,12 +45,7 @@ pub(crate) const MP_COMMAND_DISABLE_NO_SPACES: u8 = 246;
 /// Once unpacked, call [crate::parse::file_parser] or [crate::parse::snippet_parser] as appropriate
 pub fn meatpacked_to_string<I>(input: I) -> IResult<I, String, nom::error::Error<I>>
 where
-    I: Clone
-        + Slice<RangeFrom<usize>>
-        + InputIter<Item = u8>
-        + InputTake
-        + InputLength
-        + Compare<&'static [u8]>,
+    I: Input<Item = u8> + for<'a> Compare<&'a [u8]>,
 {
     let state = Rc::new(RefCell::new(MeatpackState::default()));
     let mut parser = iterator(input, |input| decode_next(state.clone()).parse(input));
@@ -69,14 +64,9 @@ struct MeatpackState {
 /// Decode the next command or character pair
 fn decode_next<I>(
     state: Rc<RefCell<MeatpackState>>,
-) -> impl Parser<I, Vec<u8>, nom::error::Error<I>>
+) -> impl Parser<I, Output = Vec<u8>, Error = nom::error::Error<I>>
 where
-    I: Clone
-        + Slice<RangeFrom<usize>>
-        + InputIter<Item = u8>
-        + InputTake
-        + InputLength
-        + Compare<&'static [u8]>,
+    I: Input<Item = u8> + for<'a> Compare<&'a [u8]>,
 {
     let state_clone = state.clone();
     flat_map(tag(MP_COMMAND_HEADER.as_slice()), |_tag| le_u8)
@@ -100,14 +90,9 @@ where
 /// Decode the next pair of characters
 fn decode_character_pair<I>(
     state: Rc<RefCell<MeatpackState>>,
-) -> impl Parser<I, Vec<u8>, nom::error::Error<I>>
+) -> impl Parser<I, Output = Vec<u8>, Error = nom::error::Error<I>>
 where
-    I: Clone
-        + Slice<RangeFrom<usize>>
-        + InputIter<Item = u8>
-        + InputTake
-        + InputLength
-        + Compare<&'static [u8]>,
+    I: Input<Item = u8> + for<'a> Compare<&'a [u8]>,
 {
     let both_unpacked_parser = tag(MP_BOTH_UNPACKABLE_HEADER.as_slice())
         .and(le_u8)

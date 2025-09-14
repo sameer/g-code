@@ -19,7 +19,8 @@ maintenance = { status = "passively-maintained" }
 [dependencies]
 codespan = { version = "0.11", optional = true }
 codespan-reporting = { version = "0.11", optional = true }
-nom = { version = "7.1", optional = true }
+icewrap = { version = "0.1.1", optional = true }
+nom = { version = "8", default-features = false, optional = true }
 paste = "1"
 peg = "0.8"
 rust_decimal = { version = "1.36", default-features = false }
@@ -33,7 +34,7 @@ features = ["derive"]
 [features]
 default = ["binary", "codespan_helpers"]
 serde = ["dep:serde", "rust_decimal/serde"]
-binary = ["dep:nom"]
+binary = ["dep:icewrap", "dep:nom"]
 codespan_helpers = ["codespan", "codespan-reporting"]
 
 [dev-dependencies]
