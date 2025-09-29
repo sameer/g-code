@@ -6,10 +6,8 @@ use nom::{
 };
 
 use crate::parse::compact::binary::blocks::{
-    parse_block, BlockHeader, BlockType, EncodingType, GCodeEncodingType,
-    ThumbnailParameters,
+    parse_block, BlockHeader, BlockType, EncodingType, GCodeEncodingType, ThumbnailParameters,
 };
-
 
 /// Ordered representation of the contents of a binary g-code file.
 #[derive(Debug)]

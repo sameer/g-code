@@ -5,7 +5,11 @@
 use std::{cell::RefCell, rc::Rc};
 
 use nom::{
-    bytes::complete::tag, combinator::{cond, flat_map, iterator}, error::{ErrorKind, FromExternalError}, number::complete::le_u8, Compare, IResult, Input, Parser
+    bytes::complete::tag,
+    combinator::{cond, flat_map, iterator},
+    error::{ErrorKind, FromExternalError},
+    number::complete::le_u8,
+    Compare, IResult, Input, Parser,
 };
 
 /// Present when two characters will not be found by [unpack_character]
@@ -134,14 +138,11 @@ where
             state.packing && (first_unpacked.is_none() || second_unpacked.is_none()),
             le_u8,
         )
-        .map(move |next_byte| {
-            let next_char = next_byte.map(|b| b);
-            match (first_unpacked, second_unpacked) {
-                (None, None) => YieldedChars::One(byte),
-                (None, Some(second)) => YieldedChars::Two([next_char.unwrap(), second]),
-                (Some(first), None) => YieldedChars::Two([first, next_char.unwrap()]),
-                (Some(first), Some(second)) => YieldedChars::Two([first, second]),
-            }
+        .map(move |next_byte| match (first_unpacked, second_unpacked) {
+            (None, None) => YieldedChars::One(byte),
+            (None, Some(second)) => YieldedChars::Two([next_byte.unwrap(), second]),
+            (Some(first), None) => YieldedChars::Two([first, next_byte.unwrap()]),
+            (Some(first), Some(second)) => YieldedChars::Two([first, second]),
         })
     });
 

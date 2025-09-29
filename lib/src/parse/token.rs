@@ -21,7 +21,7 @@ impl<'input> Field<'input> {
     }
 }
 
-impl<'input> Spanned for Field<'input> {
+impl Spanned for Field<'_> {
     fn span(&self) -> Span {
         self.span
     }
@@ -40,7 +40,7 @@ impl<'input> Flag<'input> {
     }
 }
 
-impl<'input> Spanned for Flag<'input> {
+impl Spanned for Flag<'_> {
     fn span(&self) -> Span {
         self.span
     }
@@ -117,7 +117,7 @@ impl<'input> Whitespace<'input> {
     }
 }
 
-impl<'input> Spanned for Whitespace<'input> {
+impl Spanned for Whitespace<'_> {
     fn span(&self) -> Span {
         Span(self.pos, self.pos + self.inner.len())
     }
@@ -142,7 +142,7 @@ impl<'input> Comment<'input> {
     }
 }
 
-impl<'input> Spanned for Comment<'input> {
+impl Spanned for Comment<'_> {
     fn span(&self) -> Span {
         Span(self.pos, self.pos + self.inner.len())
     }
@@ -165,7 +165,7 @@ impl<'input> InlineComment<'input> {
     }
 }
 
-impl<'input> Spanned for InlineComment<'input> {
+impl Spanned for InlineComment<'_> {
     fn span(&self) -> Span {
         Span(self.pos, self.pos + self.inner.len())
     }

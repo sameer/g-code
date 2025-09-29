@@ -97,7 +97,7 @@ macro_rules! impl_commands {
             }
 
             /// Iterate over all fields including the command's name (i.e. G0 for rapid positioning)
-            pub fn iter(&self) -> impl Iterator<Item = &Field> {
+            pub fn iter(&self) -> impl Iterator<Item = &Field<'_>> {
                 std::iter::once(&self.name).chain(self.args.iter())
             }
 
@@ -107,7 +107,7 @@ macro_rules! impl_commands {
             }
 
             /// Iterate over the fields after the command's name
-            pub fn iter_args(&self) -> impl Iterator<Item = &Field> {
+            pub fn iter_args(&self) -> impl Iterator<Item = &Field<'_>> {
                 self.iter().skip(1)
             }
 
@@ -115,7 +115,7 @@ macro_rules! impl_commands {
                 self.args.iter_mut()
             }
 
-            pub fn get(&'_ self, letters: &str) -> Option<&'_ Field> {
+            pub fn get(&'_ self, letters: &str) -> Option<&'_ Field<'_>> {
                 let letters = letters.to_ascii_uppercase();
                 self.iter_args().find(|arg| arg.letters == letters)
             }

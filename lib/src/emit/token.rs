@@ -82,7 +82,7 @@ impl<'a> From<Field<'a>> for Token<'a> {
     }
 }
 
-impl<'a> Field<'a> {
+impl Field<'_> {
     /// Returns an owned representation of the Field valid for the `'static` lifetime.
     ///
     /// This will allocate any string types.

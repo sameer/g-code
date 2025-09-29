@@ -115,7 +115,7 @@ impl<'input> File<'input> {
     }
 }
 
-impl<'input> Spanned for File<'input> {
+impl Spanned for File<'_> {
     fn span(&self) -> Span {
         self.span
     }
@@ -188,7 +188,7 @@ impl<'input> Snippet<'input> {
     }
 }
 
-impl<'input> Spanned for Snippet<'input> {
+impl Spanned for Snippet<'_> {
     fn span(&self) -> Span {
         self.span
     }
@@ -202,7 +202,7 @@ pub struct Line<'input> {
     pub(crate) span: Span,
 }
 
-impl<'input> Spanned for Line<'input> {
+impl Spanned for Line<'_> {
     fn span(&self) -> Span {
         self.span
     }
