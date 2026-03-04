@@ -9,16 +9,18 @@ use crate::parse::compact::binary::blocks::{
     parse_block, BlockHeader, BlockType, EncodingType, GCodeEncodingType, ThumbnailParameters,
 };
 
+type Block<P, I> = (BlockHeader, P, I, Option<u32>);
+
 /// Ordered representation of the contents of a binary g-code file.
 #[derive(Debug)]
 pub struct File<I> {
     pub header: FileHeader,
-    pub file_meta: Option<(BlockHeader, EncodingType, I, Option<u32>)>,
-    pub printer_meta: (BlockHeader, EncodingType, I, Option<u32>),
-    pub thumbnails: Vec<(BlockHeader, ThumbnailParameters, I, Option<u32>)>,
-    pub print_meta: (BlockHeader, EncodingType, I, Option<u32>),
-    pub slicer_meta: (BlockHeader, EncodingType, I, Option<u32>),
-    pub gcode_blocks: Vec<(BlockHeader, GCodeEncodingType, I, Option<u32>)>,
+    pub file_meta: Option<Block<EncodingType, I>>,
+    pub printer_meta: Block<EncodingType, I>,
+    pub thumbnails: Vec<Block<ThumbnailParameters, I>>,
+    pub print_meta: Block<EncodingType, I>,
+    pub slicer_meta: Block<EncodingType, I>,
+    pub gcode_blocks: Vec<Block<GCodeEncodingType, I>>,
 }
 
 impl<I: Input<Item = u8> + for<'a> Compare<&'a [u8]>> File<I> {
@@ -71,10 +73,7 @@ impl FileMetaParser {
         &self,
     ) -> impl Parser<
         I,
-        Output = (
-            Option<(BlockHeader, EncodingType, I, Option<u32>)>,
-            PrinterMetaParser,
-        ),
+        Output = (Option<Block<EncodingType, I>>, PrinterMetaParser),
         Error = nom::error::Error<I>,
     >
     where
@@ -129,10 +128,7 @@ impl ThumbnailsParser {
         &self,
     ) -> impl Parser<
         I,
-        Output = (
-            Vec<(BlockHeader, ThumbnailParameters, I, Option<u32>)>,
-            PrintMetaParser,
-        ),
+        Output = (Vec<Block<ThumbnailParameters, I>>, PrintMetaParser),
         Error = nom::error::Error<I>,
     >
     where
