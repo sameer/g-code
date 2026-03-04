@@ -1,7 +1,7 @@
 use std::io::Read;
 
 use codespan_reporting::term::{
-    emit,
+    emit_to_io_write,
     termcolor::{ColorChoice, StandardStream},
 };
 use g_code::parse::file_parser;
@@ -26,7 +26,7 @@ fn main() {
         Err(err) => {
             let mut writer = StandardStream::stderr(ColorChoice::Auto);
             let config = codespan_reporting::term::Config::default();
-            emit(
+            emit_to_io_write(
                 &mut writer,
                 &config,
                 &codespan_reporting::files::SimpleFile::new(
