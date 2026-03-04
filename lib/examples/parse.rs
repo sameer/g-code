@@ -1,9 +1,9 @@
+use std::io::Read;
+
 use codespan_reporting::term::{
     emit,
     termcolor::{ColorChoice, StandardStream},
 };
-use std::io::Read;
-
 use g_code::parse::file_parser;
 
 fn main() {

@@ -78,9 +78,9 @@ pub mod encode;
 
 #[cfg(all(feature = "std", test))]
 mod tests {
-    use super::decode::*;
-    use super::encode::*;
     use std::io::Read;
+
+    use super::{decode::*, encode::*};
 
     #[test]
     #[cfg_attr(debug_assertions, ignore = "Test takes too long for debug profile")]

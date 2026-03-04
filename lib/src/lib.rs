@@ -5,16 +5,19 @@ pub mod parse;
 
 #[cfg(test)]
 mod test {
-    use crate::{emit::FormatOptions, parse::into_diagnostic};
     use pretty_assertions::assert_eq;
+
+    use crate::{emit::FormatOptions, parse::into_diagnostic};
 
     #[test]
     #[cfg(feature = "codespan_helpers")]
     fn parsing_gcode_then_emitting_then_parsing_again_returns_functionally_identical_gcode() {
-        use codespan_reporting::diagnostic::{Diagnostic, Label};
-        use codespan_reporting::term::{
-            emit,
-            termcolor::{ColorChoice, StandardStream},
+        use codespan_reporting::{
+            diagnostic::{Diagnostic, Label},
+            term::{
+                emit,
+                termcolor::{ColorChoice, StandardStream},
+            },
         };
 
         let mut writer = StandardStream::stderr(ColorChoice::Auto);
