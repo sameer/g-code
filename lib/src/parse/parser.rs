@@ -64,7 +64,7 @@ peg::parser! {
         };
         pub rule integer() -> &'input str = quiet! { $(['0'..='9']+) } / expected!("integer");
         pub rule letter() -> &'input str = quiet! { $(['a'..='z' | 'A'..='Z']) } / expected!("letter");
-        pub rule letters() -> &'input str = quiet! { $(['a'..='z' | 'A'..='Z']+) } / expected!("letters");
+        pub rule letters() -> &'input str = quiet! { $(['a'..='z' | 'A'..='Z']+ / "$") } / expected!("letters");
         pub rule whitespace() -> Whitespace<'input> = pos:position!() inner:(quiet! { $([' ' | '\t' ]+) } / expected!("whitespace")) {
             Whitespace {
                 inner,
