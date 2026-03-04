@@ -5,8 +5,8 @@ use std::{
 };
 
 use icewrap::{
-    decode::{dyn_decoder_builder, PullDecoder, PushDecoder},
-    encode::{dyn_encoder_builder, PullEncoder},
+    decode::{PullDecoder, PushDecoder, dyn_decoder_builder},
+    encode::{PullEncoder, dyn_encoder_builder},
 };
 
 fn main() {

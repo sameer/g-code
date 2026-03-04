@@ -8,7 +8,7 @@ use rust_decimal::prelude::ToPrimitive;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-use super::{token::Flag, Field, Token, Value};
+use super::{Field, Token, Value, token::Flag};
 
 struct XorAndPipe<W> {
     acc: u8,
@@ -84,7 +84,7 @@ macro_rules! formatter_core {
 
         for token in $program {
             let token = token.borrow();
-            if let Token::Field(ref f) = token {
+            if let Token::Field(f) = token {
                 // Can't handle user-provided line numbers
                 if preceded_by_newline && f.letters == "N" {
                     continue;

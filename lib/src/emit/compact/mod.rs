@@ -2,4 +2,4 @@
 
 mod binary;
 mod meatpack;
-pub use meatpack::{format_gcode_meatpack, MeatpackOptions};
+pub use meatpack::{MeatpackOptions, format_gcode_meatpack};

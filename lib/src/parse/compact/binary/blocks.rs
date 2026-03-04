@@ -1,8 +1,8 @@
 use nom::{
+    Compare, IResult, Input, Parser,
     bytes::streaming::{tag, take},
     combinator::cond,
     number::streaming::{le_u16, le_u32},
-    Compare, IResult, Input, Parser,
 };
 
 use crate::parse::compact::binary::file::ChecksumType;

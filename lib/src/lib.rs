@@ -42,7 +42,12 @@ mod test {
                 .map(|[a, b, c]| [[a, b, c, true], [a, b, c, false]])
                 .flatten()
                 .map(
-                    |[checksums, line_numbers, delimit_with_percent, newline_before_comment]| {
+                    |[
+                        checksums,
+                        line_numbers,
+                        delimit_with_percent,
+                        newline_before_comment,
+                    ]| {
                         FormatOptions {
                             checksums,
                             line_numbers,
@@ -106,8 +111,10 @@ mod test {
                                 ),
                                 &Diagnostic::error()
                                     .with_message("fields do not match")
-                                    .with_labels(vec![Label::primary((), expected.span)
-                                        .with_message("this one here officer")]),
+                                    .with_labels(vec![
+                                        Label::primary((), expected.span)
+                                            .with_message("this one here officer"),
+                                    ]),
                             )
                             .unwrap();
                         }

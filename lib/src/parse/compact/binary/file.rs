@@ -1,12 +1,12 @@
 use nom::{
+    Compare, IResult, Input, Parser,
     bytes::streaming::tag,
     combinator::{iterator, opt},
     number::streaming::le_u16,
-    Compare, IResult, Input, Parser,
 };
 
 use crate::parse::compact::binary::blocks::{
-    parse_block, BlockHeader, BlockType, EncodingType, GCodeEncodingType, ThumbnailParameters,
+    BlockHeader, BlockType, EncodingType, GCodeEncodingType, ThumbnailParameters, parse_block,
 };
 
 type Block<P, I> = (BlockHeader, P, I, Option<u32>);

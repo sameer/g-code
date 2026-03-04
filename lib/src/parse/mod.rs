@@ -38,11 +38,9 @@ pub fn into_diagnostic(err: &ParseError) -> Diagnostic {
     };
     Diagnostic::error()
         .with_message("could not parse gcode")
-        .with_labels(vec![Label::primary(
-            (),
-            err.location.offset..err.location.offset,
-        )
-        .with_message(label_msg)])
+        .with_labels(vec![
+            Label::primary((), err.location.offset..err.location.offset).with_message(label_msg),
+        ])
 }
 
 #[cfg(test)]
