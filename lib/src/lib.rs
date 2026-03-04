@@ -35,12 +35,9 @@ mod test {
             for format_options in [true, false]
                 .iter()
                 .copied()
-                .map(|a| [[a, true], [a, false]])
-                .flatten()
-                .map(|[a, b]| [[a, b, true], [a, b, false]])
-                .flatten()
-                .map(|[a, b, c]| [[a, b, c, true], [a, b, c, false]])
-                .flatten()
+                .flat_map(|a| [[a, true], [a, false]])
+                .flat_map(|[a, b]| [[a, b, true], [a, b, false]])
+                .flat_map(|[a, b, c]| [[a, b, c, true], [a, b, c, false]])
                 .map(
                     |[
                         checksums,
@@ -85,7 +82,7 @@ mod test {
                 for line in reparsed_file.iter() {
                     let validated_checksum = line.validate_checksum();
                     assert!(
-                        validated_checksum.clone().transpose().is_ok(),
+                        validated_checksum.transpose().is_ok(),
                         "got {:?} for {:#?}",
                         validated_checksum,
                         line
