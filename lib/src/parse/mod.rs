@@ -96,6 +96,16 @@ mod tests {
         }
 
         #[test]
+        fn parses_field_with_explicit_plus_sign() {
+            // Just in case some dialect emits an explicit + on positive values
+            let gcode = "X+1.5 Y+0";
+            let parsed = file_parser(gcode).unwrap();
+            let fields: Vec<_> = parsed.iter_fields().collect();
+            assert_eq!(fields[0].letters, "X");
+            assert_eq!(fields[1].letters, "Y");
+        }
+
+        #[test]
         fn parses_dollar_prefixed_field() {
             // https://github.com/sameer/svg2gcode/issues/82
             // LinuxCNC spindle selector syntax: M3 $1 (start spindle 1)
