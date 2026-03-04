@@ -15,7 +15,7 @@ mod test {
         use codespan_reporting::{
             diagnostic::{Diagnostic, Label},
             term::{
-                emit,
+                emit_to_io_write,
                 termcolor::{ColorChoice, StandardStream},
             },
         };
@@ -65,7 +65,7 @@ mod test {
                 let reparsed_file = match super::parse::file_parser(&emitted_gcode) {
                     Ok(reparsed) => reparsed,
                     Err(err) => {
-                        emit(
+                        emit_to_io_write(
                             &mut writer,
                             &config,
                             &codespan_reporting::files::SimpleFile::new(
@@ -99,7 +99,7 @@ mod test {
                     )
                     .for_each(|(expected, actual)| {
                         if expected.value != actual.value || expected.letters != actual.letters {
-                            emit(
+                            emit_to_io_write(
                                 &mut writer,
                                 &config,
                                 &codespan_reporting::files::SimpleFile::new(

@@ -12,7 +12,7 @@ readme = "../README.md"
 description = "Port of Heatshrink to Rust"
 
 [dependencies]
-paste = "1.0.15"
+paste = "1"
 
 [features]
 default = ["std"]
