@@ -47,14 +47,16 @@ pub fn into_diagnostic(err: &ParseError) -> Diagnostic {
 
 #[cfg(test)]
 mod tests {
-    use super::file_parser;
-    use crate::parse::ast::{Line, Span};
-    use crate::parse::token::*;
     use pretty_assertions::assert_eq;
 
+    use super::file_parser;
+    use crate::parse::{
+        ast::{Line, Span},
+        token::*,
+    };
+
     mod parser {
-        use super::super::parser::g_code::*;
-        use super::{assert_eq, *};
+        use super::{super::parser::g_code::*, assert_eq, *};
 
         #[test]
         fn parses_svg2gcode_output() {
@@ -211,8 +213,7 @@ N2 M107*39"#;
     }
 
     mod lexer {
-        use super::super::parser::g_code::*;
-        use super::{assert_eq, *};
+        use super::{super::parser::g_code::*, assert_eq, *};
 
         #[test]
         fn escaped_quotes_are_lexed() {

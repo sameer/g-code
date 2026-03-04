@@ -10,7 +10,12 @@ use super::{Field, Token, Value};
 ///
 /// ```
 /// use g_code::command;
-/// assert_eq!(command!(RapidPositioning { X: 0., Y: 1., }).iter().fold(String::default(), |s, f| s + &f.to_string()), "G0X0Y1");
+/// assert_eq!(
+///     command!(RapidPositioning { X: 0., Y: 1. })
+///         .iter()
+///         .fold(String::default(), |s, f| s + &f.to_string()),
+///     "G0X0Y1"
+/// );
 /// ```
 #[macro_export]
 macro_rules! command {

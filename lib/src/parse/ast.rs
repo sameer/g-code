@@ -1,7 +1,7 @@
-use crate::emit::Token;
+use std::{fmt::Debug, iter::Peekable};
 
 use super::token::*;
-use std::{fmt::Debug, iter::Peekable};
+use crate::emit::Token;
 
 #[derive(Clone, Copy, Debug, PartialEq, Hash, Eq)]
 /// A range of [u8] in the raw text of the program.

@@ -1,14 +1,14 @@
+use std::{
+    borrow::Borrow,
+    fmt::{self, Write as FmtWrite},
+    io::Write as IoWrite,
+};
+
 use rust_decimal::prelude::ToPrimitive;
-
-use std::borrow::Borrow;
-use std::fmt::{self, Write as FmtWrite};
-use std::io::Write as IoWrite;
-
-use super::token::Flag;
-use super::{Field, Token, Value};
-
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+
+use super::{token::Flag, Field, Token, Value};
 
 struct XorAndPipe<W> {
     acc: u8,

@@ -2,12 +2,12 @@
 //!
 //! <https://github.com/scottmudge/OctoPrint-MeatPack/>
 
+use std::{borrow::Borrow, fmt::Arguments, io::Write as IoWrite};
+
 use crate::{
     emit::{token::Flag, Field, FormatOptions, Token, Value},
     parse::compact::meatpack::*,
 };
-
-use std::{borrow::Borrow, fmt::Arguments, io::Write as IoWrite};
 
 #[derive(Clone)]
 pub struct MeatpackOptions {

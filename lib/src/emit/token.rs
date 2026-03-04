@@ -1,7 +1,6 @@
-use rust_decimal::prelude::ToPrimitive;
-use rust_decimal::Decimal;
-
 use std::borrow::Cow;
+
+use rust_decimal::{prelude::ToPrimitive, Decimal};
 
 use crate::parse::token::{
     Comment as ParsedComment, Field as ParsedField, Flag as ParsedFlag,

@@ -1,6 +1,8 @@
-use super::ast::{Span, Spanned};
-use rust_decimal::Decimal;
 use std::cmp::PartialEq;
+
+use rust_decimal::Decimal;
+
+use super::ast::{Span, Spanned};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// ASCII letter(s) followed by a [Value]
