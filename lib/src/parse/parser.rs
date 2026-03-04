@@ -31,6 +31,7 @@ peg::parser! {
         pub rule dot() -> &'input str = quiet! { $(".") } / expected!("decimal point");
         pub rule star() -> &'input str = quiet!{ $("*") } / expected!("checksum asterisk");
         pub rule minus() -> &'input str = quiet!{ $("-") } / expected!("minus sign");
+        pub rule plus() -> &'input str = quiet!{ $("+") } / expected!("plus sign");
         pub rule percent() -> Percent = pos:position!()  inner:(quiet! { $("%") } / expected!("percent sign")) {
             Percent {
                 pos,
@@ -80,8 +81,8 @@ peg::parser! {
         };
 
         rule field() -> Field<'input>
-            = left:position!() letters:letters() neg:minus()? lhs:integer()  dot:dot() rhs:integer()? right:position!() {?
-                let lhs_start = left + letters.len() + neg.as_ref().map(|_| 1).unwrap_or(0);
+            = left:position!() letters:letters() pos:plus()? neg:minus()? lhs:integer()  dot:dot() rhs:integer()? right:position!() {?
+                let lhs_start = left + letters.len() + pos.as_ref().map(|_| 1).unwrap_or(0) + neg.as_ref().map(|_| 1).unwrap_or(0);
                 let lhs_end = lhs_start + lhs.len();
                 let rhs_start = lhs_end + 1;
                 let rhs_end = rhs_start + rhs.map(|x| x.len()).unwrap_or(0);
@@ -91,7 +92,7 @@ peg::parser! {
                         .map_err(decimal_err_into_str)
                         .and_then(|lhs| if let Some(rhs_str) = rhs {
                             rhs_str.parse::<i64>()
-                                .map_err(|e| "fractional part does not fit in an i64")
+                                .map_err(|_e| "fractional part does not fit in an i64")
                                 .and_then(|rhs| if rhs_str.len() > 28 { Err("scale is higher than allowed maximum precision") } else { Ok(rhs)})
                                 .map(|rhs| Decimal::new(rhs, rhs_str.len() as u32))
                                 .map(|rhs| lhs + rhs)
@@ -101,29 +102,39 @@ peg::parser! {
                                 if neg.is_some() { -lhs } else { lhs }
                             )
                         })?),
-                    raw_value: if neg.is_some() { vec!["-", lhs, ".", rhs.unwrap_or("")] } else { vec![lhs, ".", rhs.unwrap_or("")] },
+                    raw_value: match (pos.is_some(), neg.is_some()) {
+                        (false, true)  => vec!["-", lhs, ".", rhs.unwrap_or("")],
+                        (true, false)  => vec!["+", lhs, ".", rhs.unwrap_or("")],
+                        (false, false) => vec![lhs, ".", rhs.unwrap_or("")],
+                        (true, true)   => unreachable!(),
+                    },
                     span: Span(left, right)
                 })
             }
-            / left:position!() letters:letters() neg:minus()? dot:dot() rhs_str:integer() right:position!() {?
-                let rhs_start = left + letters.len() + neg.as_ref().map(|_| 1).unwrap_or(0) + 1;
+            / left:position!() letters:letters() pos:plus()? neg:minus()? dot:dot() rhs_str:integer() right:position!() {?
+                let rhs_start = left + letters.len() + pos.as_ref().map(|_| 1).unwrap_or(0) + neg.as_ref().map(|_| 1).unwrap_or(0) + 1;
                 let rhs_end = right;
                 Ok(Field {
                     letters,
                     value: Value::Rational(rhs_str.parse::<i64>()
-                        .map_err(|e| "fractional part does not fit in an i64")
+                        .map_err(|_e| "fractional part does not fit in an i64")
                         .and_then(|rhs| if rhs_str.len() > 28 { Err("scale is higher than allowed maximum precision") } else { Ok(rhs)})
                         .map(|rhs| Decimal::new(rhs, rhs_str.len() as u32))
                         .map(|rhs| if neg.is_some() { -rhs } else { rhs })?),
-                    raw_value: if neg.is_some() { vec!["-", ".", rhs_str] } else { vec![".", rhs_str] },
+                    raw_value: match (pos.is_some(), neg.is_some()) {
+                        (false, true)  => vec!["-", ".", rhs_str],
+                        (true, false)  => vec!["+", ".", rhs_str],
+                        (false, false) => vec![".", rhs_str],
+                        (true, true)   => unreachable!(),
+                    },
                     span: Span(left, right)
                 })
             }
-            / left:position!() letters:letters() value:integer() right:position!() {?
+            / left:position!() letters:letters() pos:plus()? value:integer() right:position!() {?
                 Ok(Field {
                     letters,
-                    value: Value::Integer(value.parse::<usize>().map_err(|e| "integer does not fit in usize")?),
-                    raw_value: vec![value],
+                    value: Value::Integer(value.parse::<usize>().map_err(|_e| "integer does not fit in usize")?),
+                    raw_value: if pos.is_some() { vec!["+", value] } else { vec![value] },
                     span: Span(left, right)
                 })
             }
