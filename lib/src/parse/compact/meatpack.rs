@@ -5,11 +5,11 @@
 use std::{cell::RefCell, rc::Rc};
 
 use nom::{
+    Compare, IResult, Input, Parser,
     bytes::complete::tag,
     combinator::{cond, flat_map, iterator},
     error::{ErrorKind, FromExternalError},
     number::complete::le_u8,
-    Compare, IResult, Input, Parser,
 };
 
 /// Present when two characters will not be found by [unpack_character]

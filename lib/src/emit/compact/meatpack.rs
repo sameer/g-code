@@ -5,7 +5,7 @@
 use std::{borrow::Borrow, fmt::Arguments, io::Write as IoWrite};
 
 use crate::{
-    emit::{token::Flag, Field, FormatOptions, Token, Value},
+    emit::{Field, FormatOptions, Token, Value, token::Flag},
     parse::compact::meatpack::*,
 };
 
@@ -97,13 +97,11 @@ where
 
     fn checksum(&self) -> u8 {
         let mut checksum = self.checksum_acc;
-        if let Some((pending_byte, include_pending_in_checksum)) = self.pending {
-            if include_pending_in_checksum {
-                if self.enabled {
-                    checksum ^= packable_to_uppercase(pending_byte, self.meatpack_opts.no_spaces);
-                } else {
-                    checksum ^= pending_byte;
-                }
+        if let Some((pending_byte, true)) = self.pending {
+            if self.enabled {
+                checksum ^= packable_to_uppercase(pending_byte, self.meatpack_opts.no_spaces);
+            } else {
+                checksum ^= pending_byte;
             }
         }
         checksum
@@ -200,7 +198,7 @@ where
 
     for token in program {
         let token = token.borrow();
-        if let Token::Field(ref f) = token {
+        if let Token::Field(f) = token {
             // Can't handle user-provided line numbers
             if preceded_by_newline && f.letters == "N" {
                 continue;

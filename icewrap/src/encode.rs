@@ -188,12 +188,8 @@ impl core::fmt::Display for NotFinishedYet {
     }
 }
 
-impl<
-        const WINDOW: u8,
-        const WINDOW_BUF_SIZE: usize,
-        const LOOKAHEAD: u8,
-        const USE_INDEX: bool,
-    > EncoderTrait for Encoder<WINDOW, WINDOW_BUF_SIZE, LOOKAHEAD, USE_INDEX>
+impl<const WINDOW: u8, const WINDOW_BUF_SIZE: usize, const LOOKAHEAD: u8, const USE_INDEX: bool>
+    EncoderTrait for Encoder<WINDOW, WINDOW_BUF_SIZE, LOOKAHEAD, USE_INDEX>
 {
     fn window_bits(&self) -> u8 {
         WINDOW
@@ -406,12 +402,8 @@ impl<
     }
 }
 
-impl<
-        const WINDOW: u8,
-        const WINDOW_BUF_SIZE: usize,
-        const LOOKAHEAD: u8,
-        const USE_INDEX: bool,
-    > Encoder<WINDOW, WINDOW_BUF_SIZE, LOOKAHEAD, USE_INDEX>
+impl<const WINDOW: u8, const WINDOW_BUF_SIZE: usize, const LOOKAHEAD: u8, const USE_INDEX: bool>
+    Encoder<WINDOW, WINDOW_BUF_SIZE, LOOKAHEAD, USE_INDEX>
 {
     const VERIFY: () = {
         assert!(WINDOW >= MIN_WINDOW_BITS, "window too small");
@@ -638,12 +630,8 @@ impl<
     }
 }
 
-impl<
-        const WINDOW: u8,
-        const WINDOW_BUF_SIZE: usize,
-        const LOOKAHEAD: u8,
-        const USE_INDEX: bool,
-    > Default for Encoder<WINDOW, WINDOW_BUF_SIZE, LOOKAHEAD, USE_INDEX>
+impl<const WINDOW: u8, const WINDOW_BUF_SIZE: usize, const LOOKAHEAD: u8, const USE_INDEX: bool>
+    Default for Encoder<WINDOW, WINDOW_BUF_SIZE, LOOKAHEAD, USE_INDEX>
 {
     fn default() -> Self {
         Self::new()
