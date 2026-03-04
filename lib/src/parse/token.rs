@@ -5,7 +5,7 @@ use rust_decimal::Decimal;
 use super::ast::{Span, Spanned};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-/// ASCII letter(s) followed by a [Value]
+/// ASCII letter(s) or `$` followed by a [Value]
 pub struct Field<'input> {
     pub(crate) letters: &'input str,
     pub(crate) value: Value<'input>,

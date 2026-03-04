@@ -96,6 +96,16 @@ mod tests {
         }
 
         #[test]
+        fn parses_dollar_prefixed_field() {
+            // https://github.com/sameer/svg2gcode/issues/82
+            // LinuxCNC spindle selector syntax: M3 $1 (start spindle 1)
+            let gcode = "M3 $1";
+            let parsed = file_parser(gcode).unwrap();
+            let fields: Vec<_> = parsed.iter_fields().collect();
+            assert_eq!(fields[1].letters, "$");
+        }
+
+        #[test]
         fn parses_fields_with_trailing_whitespace() {
             let gcode = "G0 X1 ";
             file_parser(gcode).unwrap();
