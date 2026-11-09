@@ -107,7 +107,7 @@ macro_rules! impl_commands {
             }
 
             /// Consumes the command to produce tokens suitable for output
-            pub fn into_token_iter(self) -> impl Iterator<Item = Token<'a>> + DoubleEndedIterator {
+            pub fn into_token_iter(self) -> impl DoubleEndedIterator<Item = Token<'a>> {
                 std::iter::once(Token::from(self.name)).chain(self.args.into_iter().map(Token::from))
             }
 
