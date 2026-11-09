@@ -107,8 +107,8 @@ macro_rules! impl_commands {
             }
 
             /// Consumes the command to produce tokens suitable for output
-            pub fn into_token_vec(mut self) -> Vec<Token<'a>> {
-                std::iter::once(self.name).chain(self.args.drain(..)).map(|f| f.into()).collect()
+            pub fn into_token_iter(self) -> impl DoubleEndedIterator<Item = Token<'a>> {
+                std::iter::once(Token::from(self.name)).chain(self.args.into_iter().map(Token::from))
             }
 
             /// Iterate over the fields after the command's name
