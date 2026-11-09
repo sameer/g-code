@@ -47,7 +47,6 @@ pub fn into_diagnostic(err: &ParseError) -> Diagnostic {
 mod tests {
     use pretty_assertions::assert_eq;
 
-    use super::file_parser;
     use crate::parse::{
         ast::{Line, Span},
         token::*,
@@ -135,9 +134,9 @@ mod tests {
 
         #[test]
         fn validates_checksums() {
-            let gcode = r#"N0 M106*36
+            let gcode = r"N0 M106*36
 N1 G28*18
-N2 M107*39"#;
+N2 M107*39";
             let parsed = file_parser(gcode).unwrap();
             for (line, checksum) in parsed.iter().zip(&[36u8, 18u8, 39u8]) {
                 assert_eq!(line.compute_checksum(), *checksum);
@@ -215,7 +214,7 @@ N2 M107*39"#;
             assert_eq!(
                 *parsed.iter().next().unwrap(),
                 Line {
-                    line_components: vec![LineComponent {
+                    components: vec![LineComponent {
                         inline_comment: Some(InlineComment {
                             inner: "(comment)",
                             pos: 0
@@ -254,49 +253,49 @@ N2 M107*39"#;
         #[test]
         fn letter_is_lexed() {
             let gcode = "A";
-            assert_eq!(letter(gcode), Ok(gcode),)
+            assert_eq!(letter(gcode), Ok(gcode),);
         }
 
         #[test]
         fn letters_are_lexed() {
             let gcode = "ABCD";
-            assert_eq!(letters(gcode), Ok(gcode),)
+            assert_eq!(letters(gcode), Ok(gcode),);
         }
 
         #[test]
         fn integer_is_lexed() {
             let gcode = "1234567890";
-            assert_eq!(integer(gcode), Ok(gcode),)
+            assert_eq!(integer(gcode), Ok(gcode),);
         }
 
         #[test]
         fn dot_is_lexed() {
             let gcode = ".";
-            assert_eq!(dot(gcode), Ok(gcode),)
+            assert_eq!(dot(gcode), Ok(gcode),);
         }
 
         #[test]
         fn star_is_lexed() {
             let gcode = "*";
-            assert_eq!(star(gcode), Ok(gcode),)
+            assert_eq!(star(gcode), Ok(gcode),);
         }
 
         #[test]
         fn minus_is_lexed() {
             let gcode = "-";
-            assert_eq!(minus(gcode), Ok(gcode),)
+            assert_eq!(minus(gcode), Ok(gcode),);
         }
 
         #[test]
         fn percent_is_lexed() {
             let gcode = "%";
-            assert_eq!(percent(gcode), Ok(Percent { pos: 0 }),)
+            assert_eq!(percent(gcode), Ok(Percent { pos: 0 }),);
         }
 
         #[test]
         fn newline_is_lexed() {
             let gcode = "\n";
-            assert_eq!(newline(gcode), Ok(Newline { pos: 0 }),)
+            assert_eq!(newline(gcode), Ok(Newline { pos: 0 }),);
         }
 
         #[test]
@@ -308,7 +307,7 @@ N2 M107*39"#;
                     pos: 0,
                     inner: gcode
                 }),
-            )
+            );
         }
 
         #[test]

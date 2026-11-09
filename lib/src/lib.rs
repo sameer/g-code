@@ -83,9 +83,7 @@ mod test {
                     let validated_checksum = line.validate_checksum();
                     assert!(
                         validated_checksum.transpose().is_ok(),
-                        "got {:?} for {:#?}",
-                        validated_checksum,
-                        line
+                        "got {validated_checksum:?} for {line:#?}"
                     );
                 }
 
@@ -125,7 +123,7 @@ mod test {
                             "{:?} vs {:?}",
                             expected, actual
                         );
-                    })
+                    });
             }
         }
     }

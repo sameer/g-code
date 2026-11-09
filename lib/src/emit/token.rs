@@ -118,6 +118,42 @@ pub enum Value<'a> {
     String(Cow<'a, str>),
 }
 
+impl From<f64> for Value<'_> {
+    fn from(value: f64) -> Self {
+        Self::Float(value)
+    }
+}
+
+impl From<Decimal> for Value<'_> {
+    fn from(value: Decimal) -> Self {
+        Self::Rational(value)
+    }
+}
+
+impl<'a> From<&'a str> for Value<'a> {
+    fn from(value: &'a str) -> Self {
+        Self::String(Cow::Borrowed(value))
+    }
+}
+
+impl<'a> From<Cow<'a, str>> for Value<'a> {
+    fn from(value: Cow<'a, str>) -> Self {
+        Self::String(value)
+    }
+}
+
+impl From<String> for Value<'_> {
+    fn from(value: String) -> Self {
+        Self::String(Cow::Owned(value))
+    }
+}
+
+impl From<usize> for Value<'_> {
+    fn from(value: usize) -> Self {
+        Self::Integer(value)
+    }
+}
+
 impl Value<'_> {
     /// Interpret the value as an [f64]
     ///
@@ -146,7 +182,7 @@ impl Value<'_> {
 
 impl<'input> From<&ParsedValue<'input>> for Value<'input> {
     fn from(val: &ParsedValue<'input>) -> Self {
-        use ParsedValue::*;
+        use ParsedValue::{Integer, Rational, String};
         match val {
             Rational(r) => Self::Rational(*r),
             Integer(i) => Self::Integer(*i),

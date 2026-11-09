@@ -51,7 +51,7 @@ impl<E: EncoderTrait + ?Sized> EncoderTrait for &mut E {
     }
 
     fn ack_sink_to_offered(&mut self, amount: u16) {
-        (**self).ack_sink_to_offered(amount)
+        (**self).ack_sink_to_offered(amount);
     }
 
     fn poll(&mut self) -> PollResult {
@@ -63,7 +63,7 @@ impl<E: EncoderTrait + ?Sized> EncoderTrait for &mut E {
     }
 
     fn reset(&mut self) {
-        (**self).reset()
+        (**self).reset();
     }
 }
 
@@ -249,7 +249,7 @@ impl<const WINDOW: u8, const WINDOW_BUF_SIZE: usize, const LOOKAHEAD: u8, const 
 
     fn poll(&mut self) -> PollResult {
         match self.state {
-            State::NotFull => PollResult::Empty,
+            State::NotFull | State::Finished => PollResult::Empty,
             State::Filled => {
                 if USE_INDEX {
                     let index = self.index.as_mut().unwrap();
@@ -287,17 +287,14 @@ impl<const WINDOW: u8, const WINDOW_BUF_SIZE: usize, const LOOKAHEAD: u8, const 
                         Self::LOOKAHEAD_SIZE.min(self.input_size - self.match_scan_index);
 
                     let match_res = self.find_longest_match(start, end, maximum_len);
-                    match match_res {
-                        Some((pos, len)) => {
-                            self.match_pos = pos;
-                            self.match_len = len;
-                            // This can overflow for a 15-bit window
-                            debug_assert!(pos <= (Self::INPUT_BUF_SIZE - 1) + self.input_size);
-                        }
-                        None => {
-                            self.match_scan_index += 1;
-                            self.match_len = 0;
-                        }
+                    if let Some((pos, len)) = match_res {
+                        self.match_pos = pos;
+                        self.match_len = len;
+                        // This can overflow for a 15-bit window
+                        debug_assert!(pos <= (Self::INPUT_BUF_SIZE - 1) + self.input_size);
+                    } else {
+                        self.match_scan_index += 1;
+                        self.match_len = 0;
                     }
                     self.state = State::YieldTagBit;
                 }
@@ -373,7 +370,6 @@ impl<const WINDOW: u8, const WINDOW_BUF_SIZE: usize, const LOOKAHEAD: u8, const 
                     PollResult::Empty
                 }
             }
-            State::Finished => PollResult::Empty,
         }
     }
 
@@ -421,8 +417,7 @@ impl<const WINDOW: u8, const WINDOW_BUF_SIZE: usize, const LOOKAHEAD: u8, const 
 
     pub const fn new() -> Self {
         // Suppress unused variable warnings
-        #[allow(clippy::let_unit_value)]
-        let _ = Self::VERIFY;
+        let () = Self::VERIFY;
 
         Self {
             buffer: [0; WINDOW_BUF_SIZE],
@@ -482,17 +477,19 @@ impl<const WINDOW: u8, const WINDOW_BUF_SIZE: usize, const LOOKAHEAD: u8, const 
 
     #[inline]
     fn push_outgoing(&mut self) -> (bool, PollResult) {
-        let count;
-        let bits;
-        if self.outgoing_bits_count > U8_BITS {
-            count = U8_BITS;
-            bits = (self.outgoing_bits >> (self.outgoing_bits_count - U8_BITS))
-                .try_into()
-                .unwrap();
+        let (count, bits) = if self.outgoing_bits_count > U8_BITS {
+            (
+                U8_BITS,
+                (self.outgoing_bits >> (self.outgoing_bits_count - U8_BITS))
+                    .try_into()
+                    .unwrap(),
+            )
         } else {
-            count = self.outgoing_bits_count;
-            bits = (self.outgoing_bits & 0xFF).try_into().unwrap();
-        }
+            (
+                self.outgoing_bits_count,
+                (self.outgoing_bits & 0xFF).try_into().unwrap(),
+            )
+        };
 
         if count > 0 {
             let res = self.push_bits(bits, count);
@@ -799,7 +796,7 @@ create_encoders! {
 
 #[cfg(feature = "std")]
 mod std_support {
-    use super::*;
+    use super::{EncoderTrait, NotFinishedYet, PollResult, SinkError};
 
     impl std::error::Error for SinkError {}
     impl std::error::Error for NotFinishedYet {}
@@ -826,7 +823,7 @@ mod std_support {
         }
 
         fn ack_sink_to_offered(&mut self, amount: u16) {
-            (**self).ack_sink_to_offered(amount)
+            (**self).ack_sink_to_offered(amount);
         }
 
         fn poll(&mut self) -> PollResult {
@@ -838,7 +835,7 @@ mod std_support {
         }
 
         fn reset(&mut self) {
-            (**self).reset()
+            (**self).reset();
         }
     }
 

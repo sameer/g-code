@@ -6,7 +6,11 @@ use std::{borrow::Borrow, fmt::Arguments, io::Write as IoWrite};
 
 use crate::{
     emit::{Field, FormatOptions, Token, Value, token::Flag},
-    parse::compact::meatpack::*,
+    parse::compact::meatpack::{
+        MP_BOTH_UNPACKABLE_HEADER, MP_COMMAND_DISABLE_PACKING, MP_COMMAND_ENABLE_NO_SPACES,
+        MP_COMMAND_ENABLE_PACKING, MP_COMMAND_HEADER, MP_COMMAND_RESET_ALL,
+        MP_SINGLE_UNPACKABLE_MASK,
+    },
 };
 
 #[derive(Clone)]
@@ -138,10 +142,10 @@ where
             return Ok(());
         }
         let mut pending_slice_opt = None;
-        let mut _pending_array_opt = None;
+        let pending_array_opt;
         if let Some((pending, include_pending_in_checksum)) = self.pending.take() {
-            _pending_array_opt = Some([pending, slice[0]]);
-            pending_slice_opt = _pending_array_opt
+            pending_array_opt = Some([pending, slice[0]]);
+            pending_slice_opt = pending_array_opt
                 .as_ref()
                 .map(|array| (array.as_slice(), include_pending_in_checksum));
             slice = &slice[1..];

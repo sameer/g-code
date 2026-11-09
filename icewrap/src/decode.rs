@@ -90,7 +90,7 @@ impl<D: DecoderTrait> DecoderTrait for &mut D {
     }
 
     fn reset(&mut self) {
-        (**self).reset()
+        (**self).reset();
     }
 
     fn is_finished(&self) -> bool {
@@ -118,8 +118,7 @@ impl<const WINDOW: u8, const LOOKAHEAD: u8, const BUFFER_SIZE: usize>
     };
 
     pub const fn new() -> Self {
-        #[allow(clippy::let_unit_value)]
-        let _ = Self::VERIFY;
+        let () = Self::VERIFY;
 
         Self {
             state: State::TagBit,
@@ -188,12 +187,11 @@ impl<const WINDOW: u8, const LOOKAHEAD: u8, const BUFFER_SIZE: usize> DecoderTra
     }
 
     fn load(&mut self, byte: u8) -> Result<(), Full> {
-        match self.loaded_byte {
-            Some(_) => Err(Full),
-            None => {
-                self.loaded_byte = Some(byte);
-                Ok(())
-            }
+        if self.loaded_byte.is_some() {
+            Err(Full)
+        } else {
+            self.loaded_byte = Some(byte);
+            Ok(())
         }
     }
 
@@ -448,7 +446,7 @@ create_decoders! {
 mod std_support {
     use std::io::{Read, Write};
 
-    use super::*;
+    use super::{DecoderTrait, Full, PollResult};
 
     impl DecoderTrait for Box<dyn DecoderTrait> {
         fn window_bits(&self) -> u8 {
@@ -468,7 +466,7 @@ mod std_support {
         }
 
         fn reset(&mut self) {
-            (**self).reset()
+            (**self).reset();
         }
 
         fn is_finished(&self) -> bool {
@@ -510,9 +508,8 @@ mod std_support {
                         let num_read = self.reader.read(&mut buf)?;
                         if num_read == 0 {
                             break Ok(read);
-                        } else {
-                            self.decoder.load(buf[0]).unwrap();
                         }
+                        self.decoder.load(buf[0]).unwrap();
                     }
                 }
             }
