@@ -25,10 +25,10 @@ macro_rules! command {
         {
             paste::expr!{
                 g_code::emit::command::[<$commandName:snake:lower>](
-                    vec![$(
+                    [$(
                         g_code::emit::Field {
                             letters: std::borrow::Cow::Borrowed(stringify!([<$arg:upper>])),
-                            value: g_code::emit::Value::Float($value),
+                            value: g_code::emit::Value::from($value),
                         }
                     ,)*].into_iter()
                 )
