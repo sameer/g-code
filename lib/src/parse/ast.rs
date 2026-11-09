@@ -1,6 +1,8 @@
 use std::{fmt::Debug, iter::Peekable};
 
-use super::token::*;
+use super::token::{
+    Checksum, Comment, Field, Flag, InlineComment, LineComponent, Newline, Percent, Whitespace,
+};
 use crate::emit::Token;
 
 #[derive(Clone, Copy, Debug, PartialEq, Hash, Eq)]
@@ -33,7 +35,7 @@ impl std::ops::Add for Span {
 }
 impl std::ops::AddAssign for Span {
     fn add_assign(&mut self, rhs: Self) {
-        *self = Self(self.0.min(rhs.0), self.1.max(rhs.1))
+        *self = Self(self.0.min(rhs.0), self.1.max(rhs.1));
     }
 }
 
@@ -101,16 +103,16 @@ impl<'input> File<'input> {
 
     /// Iterate by [u8] in the file.
     pub fn iter_bytes(&self) -> impl Iterator<Item = &u8> {
-        self.iter().flat_map(|line| line.iter_bytes())
+        self.iter().flat_map(Line::iter_bytes)
     }
 
     /// Iterate by emission [Token].
     pub fn iter_emit_tokens<'a>(&'a self) -> impl Iterator<Item = Token<'input>> + 'a {
         TokenizingIterator {
-            field_iterator: self.iter_fields().peekable(),
-            flag_iterator: self.iter_flags().peekable(),
-            inline_comment_iterator: self.iter_inline_comments().peekable(),
-            comment_iterator: self.iter_comments().peekable(),
+            field: self.iter_fields().peekable(),
+            flag: self.iter_flags().peekable(),
+            inline_comment: self.iter_inline_comments().peekable(),
+            comment: self.iter_comments().peekable(),
         }
     }
 }
@@ -164,7 +166,7 @@ impl<'input> Snippet<'input> {
 
     /// Iterate by [u8] in the snippet.
     pub fn iter_bytes(&self) -> impl Iterator<Item = &u8> {
-        self.iter().flat_map(|line| line.iter_bytes())
+        self.iter().flat_map(Line::iter_bytes)
     }
 
     /// Iterate by [Comment] in the snippet.
@@ -180,10 +182,10 @@ impl<'input> Snippet<'input> {
     /// Iterate by emission [Token].
     pub fn iter_emit_tokens<'a>(&'a self) -> impl Iterator<Item = Token<'input>> + 'a {
         TokenizingIterator {
-            field_iterator: self.iter_fields().peekable(),
-            flag_iterator: self.iter_flags().peekable(),
-            inline_comment_iterator: self.iter_inline_comments().peekable(),
-            comment_iterator: self.iter_comments().peekable(),
+            field: self.iter_fields().peekable(),
+            flag: self.iter_flags().peekable(),
+            inline_comment: self.iter_inline_comments().peekable(),
+            comment: self.iter_comments().peekable(),
         }
     }
 }
@@ -196,7 +198,7 @@ impl Spanned for Snippet<'_> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// A sequence of g-code that is either followed by a [Newline] or at the end of a file.
 pub struct Line<'input> {
-    pub(crate) line_components: Vec<LineComponent<'input>>,
+    pub(crate) components: Vec<LineComponent<'input>>,
     pub(crate) checksum: Option<Checksum>,
     pub(crate) comment: Option<Comment<'input>>,
     pub(crate) span: Span,
@@ -211,35 +213,33 @@ impl Spanned for Line<'_> {
 impl<'input> Line<'input> {
     /// Iterate by [Field] in a line of g-code.
     pub fn iter_fields(&self) -> impl Iterator<Item = &Field<'input>> {
-        self.line_components.iter().filter_map(|c| c.field.as_ref())
+        self.components.iter().filter_map(|c| c.field.as_ref())
     }
 
     /// Iterate by [Flag] in a line of g-code.
     pub fn iter_flags(&self) -> impl Iterator<Item = &Flag<'input>> {
-        self.line_components.iter().filter_map(|c| c.flag.as_ref())
+        self.components.iter().filter_map(|c| c.flag.as_ref())
     }
 
     /// Iterate by [InlineComment] in a line of g-code.
     pub fn iter_inline_comments(&self) -> impl Iterator<Item = &InlineComment<'input>> {
-        self.line_components
+        self.components
             .iter()
             .filter_map(|c| c.inline_comment.as_ref())
     }
 
     /// Iterate by [Whitespace] in a line of g-code.
     pub fn iter_whitespace(&self) -> impl Iterator<Item = &Whitespace<'input>> {
-        self.line_components
-            .iter()
-            .filter_map(|c| c.whitespace.as_ref())
+        self.components.iter().filter_map(|c| c.whitespace.as_ref())
     }
 
     /// Iterate by emission [Token] in a line of g-code.
     pub fn iter_emit_tokens<'a>(&'a self) -> impl Iterator<Item = Token<'input>> + 'a {
         TokenizingIterator {
-            field_iterator: self.iter_fields().peekable(),
-            flag_iterator: self.iter_flags().peekable(),
-            inline_comment_iterator: self.iter_inline_comments().peekable(),
-            comment_iterator: self.comment.iter().peekable(),
+            field: self.iter_fields().peekable(),
+            flag: self.iter_flags().peekable(),
+            inline_comment: self.iter_inline_comments().peekable(),
+            comment: self.comment.iter().peekable(),
         }
     }
 
@@ -255,18 +255,19 @@ impl<'input> Line<'input> {
         }) = self.checksum.as_ref()
         {
             let computed_checksum = self.compute_checksum();
-            if computed_checksum != *checksum {
-                return Some(Err(computed_checksum));
-            } else {
+            if computed_checksum == *checksum {
                 return Some(Ok(()));
             }
+            return Some(Err(computed_checksum));
         }
         None
     }
 
     /// Iterate over [u8] in a [Line].
     pub fn iter_bytes(&self) -> impl Iterator<Item = &u8> {
-        self.line_components.iter().flat_map(|c| c.iter_bytes())
+        self.components
+            .iter()
+            .flat_map(super::token::LineComponent::iter_bytes)
     }
 
     /// XORs bytes in a [Line] leading up to the asterisk of a [`Checksum`].
@@ -289,10 +290,10 @@ where
     IC: Iterator<Item = &'a InlineComment<'input>>,
     C: Iterator<Item = &'a Comment<'input>>,
 {
-    field_iterator: Peekable<F>,
-    flag_iterator: Peekable<FL>,
-    inline_comment_iterator: Peekable<IC>,
-    comment_iterator: Peekable<C>,
+    field: Peekable<F>,
+    flag: Peekable<FL>,
+    inline_comment: Peekable<IC>,
+    comment: Peekable<C>,
 }
 
 impl<'a, 'input: 'a, F, FL, IC, C> Iterator for TokenizingIterator<'a, 'input, F, FL, IC, C>
@@ -306,10 +307,10 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         let spans = [
-            self.field_iterator.peek().map(Spanned::span),
-            self.flag_iterator.peek().map(Spanned::span),
-            self.inline_comment_iterator.peek().map(Spanned::span),
-            self.comment_iterator.peek().map(Spanned::span),
+            self.field.peek().map(Spanned::span),
+            self.flag.peek().map(Spanned::span),
+            self.inline_comment.peek().map(Spanned::span),
+            self.comment.peek().map(Spanned::span),
         ];
         if let Some((i, _)) = spans
             .iter()
@@ -318,10 +319,10 @@ where
             .min_by_key(|(_, span)| span.unwrap().0)
         {
             match i {
-                0 => Some(Token::from(self.field_iterator.next().unwrap())),
-                1 => Some(Token::from(self.flag_iterator.next().unwrap())),
-                2 => Some(Token::from(self.inline_comment_iterator.next().unwrap())),
-                3 => Some(Token::from(self.comment_iterator.next().unwrap())),
+                0 => Some(Token::from(self.field.next().unwrap())),
+                1 => Some(Token::from(self.flag.next().unwrap())),
+                2 => Some(Token::from(self.inline_comment.next().unwrap())),
+                3 => Some(Token::from(self.comment.next().unwrap())),
                 _ => unreachable!(),
             }
         } else {

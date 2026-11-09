@@ -195,7 +195,7 @@ where
 
 impl fmt::Display for Token<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use Token::*;
+        use Token::{Comment, Field, Flag};
         match self {
             Field(field) => write!(f, "{field}"),
             Flag(flag) => write!(f, "{flag}"),

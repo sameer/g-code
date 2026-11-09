@@ -214,7 +214,7 @@ N2 M107*39"#;
             assert_eq!(
                 *parsed.iter().next().unwrap(),
                 Line {
-                    line_components: vec![LineComponent {
+                    components: vec![LineComponent {
                         inline_comment: Some(InlineComment {
                             inner: "(comment)",
                             pos: 0

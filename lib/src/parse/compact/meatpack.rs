@@ -56,7 +56,7 @@ where
             YieldedChars::None => {}
             YieldedChars::One(one) => acc.push(one),
             YieldedChars::Two(two) => acc.extend_from_slice(&two),
-        };
+        }
         acc
     });
     let (remaining, ()) = parser.finish()?;
@@ -97,10 +97,9 @@ where
             let mut state = state.borrow_mut();
             match command {
                 MP_COMMAND_ENABLE_PACKING => state.packing = true,
-                MP_COMMAND_DISABLE_PACKING => state.packing = false,
+                MP_COMMAND_DISABLE_PACKING | MP_COMMAND_RESET_ALL => state.packing = false,
                 MP_COMMAND_ENABLE_NO_SPACES => state.no_spaces = true,
                 MP_COMMAND_DISABLE_NO_SPACES => state.no_spaces = false,
-                MP_COMMAND_RESET_ALL => state.packing = false,
                 MP_COMMAND_QUERY_CONFIG => {}
                 // Not a known command? Swallow bytes and do nothing
                 _other => {}

@@ -16,10 +16,13 @@ is-it-maintained-issue-resolution = { repository = "sameer/g-code" }
 is-it-maintained-open-issues = { repository = "sameer/g-code" }
 maintenance = { status = "passively-maintained" }
 
+[lints]
+workspace = true
+
 [dependencies]
 codespan = { version = "0.13", optional = true }
 codespan-reporting = { version = "0.13", optional = true }
-icewrap = { version = "0.1.1", optional = true }
+icewrap = { path = "../icewrap", version = "0.1.1", optional = true }
 nom = { version = "8", default-features = false, optional = true }
 paste = "1"
 peg = "0.8"
@@ -35,7 +38,7 @@ features = ["derive"]
 default = ["binary", "codespan_helpers"]
 serde = ["dep:serde", "rust_decimal/serde"]
 binary = ["dep:icewrap", "dep:nom"]
-codespan_helpers = ["codespan", "codespan-reporting"]
+codespan_helpers = ["dep:codespan", "dep:codespan-reporting"]
 
 [dev-dependencies]
 pretty_assertions = "1"

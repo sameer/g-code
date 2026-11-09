@@ -11,6 +11,9 @@ license = "MIT OR Apache-2.0"
 readme = "../README.md"
 description = "Port of Heatshrink to Rust"
 
+[lints]
+workspace = true
+
 [dependencies]
 paste = "1"
 

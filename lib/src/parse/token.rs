@@ -186,9 +186,13 @@ impl<'input> LineComponent<'input> {
     pub fn iter_bytes(&'input self) -> impl Iterator<Item = &'input u8> + 'input {
         self.field
             .iter()
-            .flat_map(|f| f.iter_bytes())
-            .chain(self.flag.iter().flat_map(|f| f.iter_bytes()))
-            .chain(self.whitespace.iter().flat_map(|w| w.iter_bytes()))
-            .chain(self.inline_comment.iter().flat_map(|i| i.iter_bytes()))
+            .flat_map(Field::iter_bytes)
+            .chain(self.flag.iter().flat_map(Flag::iter_bytes))
+            .chain(self.whitespace.iter().flat_map(Whitespace::iter_bytes))
+            .chain(
+                self.inline_comment
+                    .iter()
+                    .flat_map(InlineComment::iter_bytes),
+            )
     }
 }

@@ -26,8 +26,7 @@ pub struct File<I> {
 impl<I: Input<Item = u8> + for<'a> Compare<&'a [u8]>> File<I> {
     /// Parse a complete file into its expected format.
     pub fn parse(input: I) -> IResult<I, File<I>> {
-        let stage = FileHeaderParser;
-        let (input, (header, stage)) = stage.parser().parse(input)?;
+        let (input, (header, stage)) = FileHeaderParser::parser().parse(input)?;
         let (input, (file_meta, stage)) = stage.parser().parse(input)?;
         let (input, (printer_meta, stage)) = stage.parser().parse(input)?;
         let (input, (thumbnails, stage)) = stage.parser().parse(input)?;
@@ -53,9 +52,8 @@ impl<I: Input<Item = u8> + for<'a> Compare<&'a [u8]>> File<I> {
 pub struct FileHeaderParser;
 
 impl FileHeaderParser {
-    pub fn parser<I>(
-        &self,
-    ) -> impl Parser<I, Output = (FileHeader, FileMetaParser), Error = nom::error::Error<I>>
+    pub fn parser<I>()
+    -> impl Parser<I, Output = (FileHeader, FileMetaParser), Error = nom::error::Error<I>>
     where
         I: Input<Item = u8> + for<'a> Compare<&'a [u8]>,
     {

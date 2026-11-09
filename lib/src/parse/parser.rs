@@ -19,8 +19,8 @@ fn decimal_err_into_str(err: Error) -> &'static str {
 
 peg::parser! {
     pub grammar g_code() for str {
-        use super::super::token::*;
-        use super::super::ast::*;
+        use super::super::token::{Newline, Percent, InlineComment, Comment, Whitespace, Checksum, Field, Value, Flag, LineComponent};
+        use super::super::ast::{Span, Line, File, Snippet};
         use rust_decimal::Decimal;
 
         pub rule newline() -> Newline = pos:position!() inner:(quiet!{ $("\r\n" / "\r" / "\n") } / expected!("newline")) {
@@ -82,10 +82,10 @@ peg::parser! {
 
         rule field() -> Field<'input>
             = left:position!() letters:letters() pos:plus()? neg:minus()? lhs:integer()  dot:dot() rhs:integer()? right:position!() {?
-                let lhs_start = left + letters.len() + pos.as_ref().map(|_| 1).unwrap_or(0) + neg.as_ref().map(|_| 1).unwrap_or(0);
+                let lhs_start = left + letters.len() + pos.as_ref().map_or(0, |_| 1) + neg.as_ref().map_or(0, |_| 1);
                 let lhs_end = lhs_start + lhs.len();
                 let rhs_start = lhs_end + 1;
-                let rhs_end = rhs_start + rhs.map(|x| x.len()).unwrap_or(0);
+                let rhs_end = rhs_start + rhs.map_or(0, str::len);
                 Ok(Field {
                     letters,
                     value: Value::Rational(lhs.parse::<Decimal>()
@@ -112,7 +112,7 @@ peg::parser! {
                 })
             }
             / left:position!() letters:letters() pos:plus()? neg:minus()? dot:dot() rhs_str:integer() right:position!() {?
-                let rhs_start = left + letters.len() + pos.as_ref().map(|_| 1).unwrap_or(0) + neg.as_ref().map(|_| 1).unwrap_or(0) + 1;
+                let rhs_start = left + letters.len() + pos.as_ref().map_or(0, |_| 1) + neg.as_ref().map_or(0, |_| 1) + 1;
                 let rhs_end = right;
                 Ok(Field {
                     letters,
@@ -171,12 +171,12 @@ peg::parser! {
         pub rule line() -> Line<'input> =
                 left:position!()
                      // Hacky way of imitating lalrpop following https://github.com/kevinmehall/rust-peg/blob/master/peg-macros/grammar.rustpeg#L90
-                    line_components:line_component()*
+                    components:line_component()*
                     checksum:checksum()?
                     comment:comment()?
                 right:position!() {
             Line {
-                line_components,
+                components,
                 checksum,
                 comment,
                 span: Span(left, right)
@@ -189,7 +189,7 @@ peg::parser! {
                 File {
                     percents: vec![start_percent, end_percent],
                     lines,
-                    last_line: if last_line.line_components.is_empty() && last_line.checksum.is_none() && last_line.comment.is_none() {
+                    last_line: if last_line.components.is_empty() && last_line.checksum.is_none() && last_line.comment.is_none() {
                         None
                     } else {
                         Some(last_line)
@@ -201,7 +201,7 @@ peg::parser! {
                 File {
                     percents: vec![],
                     lines,
-                    last_line: if last_line.line_components.is_empty() && last_line.checksum.is_none() && last_line.comment.is_none() {
+                    last_line: if last_line.components.is_empty() && last_line.checksum.is_none() && last_line.comment.is_none() {
                         None
                     } else {
                         Some(last_line)
@@ -214,7 +214,7 @@ peg::parser! {
         pub rule snippet_parser() -> Snippet<'input> = left:position!() lines:(a:line() b:newline() { (a, b) })* last_line:line() right:position!() {
             Snippet {
                 lines,
-                last_line: if last_line.line_components.is_empty() && last_line.checksum.is_none() && last_line.comment.is_none() {
+                last_line: if last_line.components.is_empty() && last_line.checksum.is_none() && last_line.comment.is_none() {
                     None
                 } else {
                     Some(last_line)

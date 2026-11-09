@@ -182,7 +182,7 @@ impl Value<'_> {
 
 impl<'input> From<&ParsedValue<'input>> for Value<'input> {
     fn from(val: &ParsedValue<'input>) -> Self {
-        use ParsedValue::*;
+        use ParsedValue::{Integer, Rational, String};
         match val {
             Rational(r) => Self::Rational(*r),
             Integer(i) => Self::Integer(*i),
