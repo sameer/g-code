@@ -47,7 +47,6 @@ pub fn into_diagnostic(err: &ParseError) -> Diagnostic {
 mod tests {
     use pretty_assertions::assert_eq;
 
-    use super::file_parser;
     use crate::parse::{
         ast::{Line, Span},
         token::*,

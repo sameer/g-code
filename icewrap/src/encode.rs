@@ -482,17 +482,19 @@ impl<const WINDOW: u8, const WINDOW_BUF_SIZE: usize, const LOOKAHEAD: u8, const 
 
     #[inline]
     fn push_outgoing(&mut self) -> (bool, PollResult) {
-        let count;
-        let bits;
-        if self.outgoing_bits_count > U8_BITS {
-            count = U8_BITS;
-            bits = (self.outgoing_bits >> (self.outgoing_bits_count - U8_BITS))
-                .try_into()
-                .unwrap();
+        let (count, bits) = if self.outgoing_bits_count > U8_BITS {
+            (
+                U8_BITS,
+                (self.outgoing_bits >> (self.outgoing_bits_count - U8_BITS))
+                    .try_into()
+                    .unwrap(),
+            )
         } else {
-            count = self.outgoing_bits_count;
-            bits = (self.outgoing_bits & 0xFF).try_into().unwrap();
-        }
+            (
+                self.outgoing_bits_count,
+                (self.outgoing_bits & 0xFF).try_into().unwrap(),
+            )
+        };
 
         if count > 0 {
             let res = self.push_bits(bits, count);
